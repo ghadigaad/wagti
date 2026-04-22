@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <script>(function(){var t=localStorage.getItem("sf_theme")||"dark";document.documentElement.setAttribute("data-theme",t);})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Wagti{% endblock %}</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- Minimal auth navbar: just theme toggle -->
+  <nav class="auth-nav">
+    <a href="{{ url_for('landing') }}" class="auth-nav-back" title="Back to home">
+      <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <button id="theme-toggle" class="nav-theme-btn" title="Switch theme">
+      <i class="fa-solid fa-moon" id="theme-icon"></i>
+    </button>
+  </nav>
+
+  <main class="auth-main">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block scripts %}{% endblock %}
+  <script>
+    (function() {
+      var btn  = document.getElementById("theme-toggle");
+      var icon = document.getElementById("theme-icon");
+      function applyTheme(t) {
+        document.documentElement.setAttribute("data-theme", t);
+        localStorage.setItem("sf_theme", t);
+        icon.className = t === "dark" ? "fa-solid fa-moon" : "fa-solid fa-sun";
+      }
+      applyTheme(localStorage.getItem("sf_theme") || "dark");
+      btn.addEventListener("click", function() {
+        var next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+        applyTheme(next);
+      });
+    })();
+  </script>
+</body>
+</html>

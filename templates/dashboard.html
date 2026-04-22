@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Insights — Wagti{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1><i class="fa-solid fa-chart-line" style="color:var(--primary);"></i> Insights</h1>
+  <p>Visualize your productivity patterns and track your progress.</p>
+</div>
+
+<!-- Summary Stats -->
+<div class="grid-4 section-gap">
+  <div class="stat-card">
+    <div class="stat-icon primary"><i class="fa-solid fa-clock"></i></div>
+    <div>
+      <div class="stat-label">Today's Focus</div>
+      <div class="stat-value" id="s-today">—</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon success"><i class="fa-solid fa-circle-check"></i></div>
+    <div>
+      <div class="stat-label">Tasks Today</div>
+      <div class="stat-value" id="s-tasks">—</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon teal"><i class="fa-solid fa-calendar-check"></i></div>
+    <div>
+      <div class="stat-label">All-Time Hours</div>
+      <div class="stat-value" id="s-alltime">—</div>
+    </div>
+  </div>
+
+  <!-- Productivity Score card -->
+  <div class="stat-card score-stat-card">
+    <div class="score-ring-wrap">
+      <svg viewBox="0 0 44 44" width="54" height="54">
+        <circle class="score-track" cx="22" cy="22" r="18" />
+        <circle class="score-fill" id="score-arc" cx="22" cy="22" r="18"
+                stroke-dasharray="113.1" stroke-dashoffset="113.1" />
+      </svg>
+      <span class="score-number" id="s-score">0</span>
+    </div>
+    <div>
+      <div class="stat-label">Focus Score</div>
+      <div class="score-label-text" id="s-score-label">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- Smart Warnings (hidden until data loads) -->
+<div class="card section-gap" id="warnings-card" style="display:none;">
+  <div class="card-title"><i class="fa-solid fa-triangle-exclamation"></i> Focus Alerts</div>
+  <div id="warnings-list" class="rec-list"></div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="charts-grid section-gap">
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-chart-bar"></i> Daily Focus (Last 7 Days)</div>
+    <div class="chart-wrapper">
+      <canvas id="chart-daily"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-chart-pie"></i> Today by Category</div>
+    <div class="chart-wrapper">
+      <canvas id="chart-category"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Chart Row 2 -->
+<div class="card section-gap">
+  <div class="card-title"><i class="fa-solid fa-chart-line"></i> Hourly Productivity (All Time)</div>
+  <div class="chart-wrapper tall">
+    <canvas id="chart-hourly"></canvas>
+  </div>
+</div>
+
+<!-- Prediction card -->
+<div class="card section-gap" id="prediction-card" style="display:none;">
+  <div class="card-title"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Prediction</div>
+  <div class="prediction-body">
+    <div class="prediction-icon-wrap">
+      <i class="fa-solid fa-brain"></i>
+    </div>
+    <div>
+      <div class="prediction-title" id="pred-title">—</div>
+      <div class="prediction-sub" id="pred-sub">—</div>
+      <div class="prediction-confidence" id="pred-confidence"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Smart Recommendations -->
+<div class="card section-gap">
+  <div class="card-title"><i class="fa-solid fa-lightbulb"></i> Insights & Suggestions</div>
+  <div id="rec-list" class="rec-list">
+    <div class="empty-state">
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      <p>Loading recommendations...</p>
+    </div>
+  </div>
+</div>
+
+<!-- Score Breakdown -->
+<div class="card section-gap" id="score-breakdown-card" style="display:none;">
+  <div class="card-title"><i class="fa-solid fa-sliders"></i> Performance Breakdown</div>
+  <div class="breakdown-grid">
+    <div class="breakdown-item">
+      <div class="breakdown-label">Focus Time</div>
+      <div class="progress-bar"><div class="progress-fill" id="br-focus"></div></div>
+      <div class="breakdown-pts" id="br-focus-pts">0 / 40</div>
+    </div>
+    <div class="breakdown-item">
+      <div class="breakdown-label">Tasks Completed</div>
+      <div class="progress-bar"><div class="progress-fill" id="br-tasks"></div></div>
+      <div class="breakdown-pts" id="br-tasks-pts">0 / 30</div>
+    </div>
+    <div class="breakdown-item">
+      <div class="breakdown-label">Consistency (7 days)</div>
+      <div class="progress-bar"><div class="progress-fill" id="br-cons"></div></div>
+      <div class="breakdown-pts" id="br-cons-pts">0 / 30</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,157 @@
+{% extends "auth_base.html" %}
+{% block title %}Register — Wagti{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+
+    <div class="auth-logo">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Wagti" />
+      <div class="auth-brand-name">Wagti</div>
+      <div class="auth-tagline">Track. Focus. Improve.</div>
+    </div>
+
+    <h2 class="auth-title">Create your account</h2>
+    <p class="auth-sub">Create your account and start focusing in seconds.</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="auth-alert auth-alert-{{ cat }}">
+          <i class="fa-solid fa-circle-exclamation"></i> {{ msg }}
+        </div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('register') }}" class="auth-form" id="reg-form">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" class="form-control"
+               placeholder="Enter your username" required autofocus />
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" class="form-control"
+               placeholder="you@example.com" required />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" class="form-control"
+               placeholder="Create a strong password" required autocomplete="new-password" />
+
+        <!-- Strength bar -->
+        <div class="pw-strength-bar" id="pw-bar">
+          <div class="pw-strength-fill" id="pw-fill"></div>
+        </div>
+        <div class="pw-strength-label" id="pw-label"></div>
+
+        <!-- Requirements checklist -->
+        <ul class="pw-requirements">
+          <li id="req-len"><i class="fa-solid fa-circle"></i> At least 8 characters</li>
+          <li id="req-upper"><i class="fa-solid fa-circle"></i> One uppercase letter (A–Z)</li>
+          <li id="req-digit"><i class="fa-solid fa-circle"></i> One number (0–9)</li>
+          <li id="req-special"><i class="fa-solid fa-circle"></i> One special character (!@#$...)</li>
+        </ul>
+      </div>
+      <div class="form-group">
+        <label for="confirm">Confirm Password</label>
+        <input type="password" id="confirm" name="confirm" class="form-control"
+               placeholder="Repeat your password" required />
+        <div class="pw-match-msg" id="pw-match"></div>
+      </div>
+      <button type="submit" class="btn btn-primary auth-btn" id="submit-btn">
+        <i class="fa-solid fa-user-plus"></i> Create Account
+      </button>
+    </form>
+
+    <p class="auth-switch">
+      Already have an account?
+      <a href="{{ url_for('login') }}">Sign in</a>
+    </p>
+
+</div>
+
+<script>
+(function () {
+  const pwInput   = document.getElementById("password");
+  const confirm   = document.getElementById("confirm");
+  const fill      = document.getElementById("pw-fill");
+  const label     = document.getElementById("pw-label");
+  const matchMsg  = document.getElementById("pw-match");
+  const submitBtn = document.getElementById("submit-btn");
+
+  const reqs = {
+    len:     { el: document.getElementById("req-len"),     test: v => v.length >= 8 },
+    upper:   { el: document.getElementById("req-upper"),   test: v => /[A-Z]/.test(v) },
+    digit:   { el: document.getElementById("req-digit"),   test: v => /[0-9]/.test(v) },
+    special: { el: document.getElementById("req-special"), test: v => /[^A-Za-z0-9]/.test(v) },
+  };
+
+  const strengthLevels = [
+    { label: "",         color: "transparent", width: "0%" },
+    { label: "Weak",     color: "#ef4444",     width: "25%" },
+    { label: "Fair",     color: "#f59e0b",     width: "50%" },
+    { label: "Good",     color: "#3b82f6",     width: "75%" },
+    { label: "Strong",   color: "#22c55e",     width: "100%" },
+  ];
+
+  function evaluate(val) {
+    let score = 0;
+    for (const key in reqs) {
+      const passed = reqs[key].test(val);
+      const li     = reqs[key].el;
+      const icon   = li.querySelector("i");
+      if (passed) {
+        score++;
+        li.classList.add("passed");
+        icon.className = "fa-solid fa-circle-check";
+      } else {
+        li.classList.remove("passed");
+        icon.className = "fa-solid fa-circle";
+      }
+    }
+    return score;
+  }
+
+  pwInput.addEventListener("input", function () {
+    const val   = this.value;
+    const score = evaluate(val);
+    const s     = val.length === 0 ? 0 : score;
+    const lvl   = strengthLevels[s];
+
+    fill.style.width      = lvl.width;
+    fill.style.background = lvl.color;
+    label.textContent     = lvl.label;
+    label.style.color     = lvl.color;
+
+    checkMatch();
+  });
+
+  confirm.addEventListener("input", checkMatch);
+
+  function checkMatch() {
+    const pw = pwInput.value;
+    const cv = confirm.value;
+    if (!cv) { matchMsg.textContent = ""; return; }
+    if (pw === cv) {
+      matchMsg.textContent = "✓ Passwords match";
+      matchMsg.style.color = "#22c55e";
+    } else {
+      matchMsg.textContent = "✗ Passwords do not match";
+      matchMsg.style.color = "#ef4444";
+    }
+  }
+
+  document.getElementById("reg-form").addEventListener("submit", function (e) {
+    const val   = pwInput.value;
+    const score = evaluate(val);
+    if (score < 4) {
+      e.preventDefault();
+      pwInput.focus();
+    }
+    if (pwInput.value !== confirm.value) {
+      e.preventDefault();
+      confirm.focus();
+    }
+  });
+})();
+</script>
+{% endblock %}
