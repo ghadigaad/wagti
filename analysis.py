@@ -2,6 +2,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import os
 from sqlalchemy import create_engine, text
+from db_url import normalize_database_url
 
 # Saudi Arabia Standard Time = UTC+3
 SAUDI_OFFSET = timedelta(hours=3)
@@ -18,11 +19,8 @@ def _get_engine():
         "DATABASE_URL",
         "sqlite:///" + os.path.join(os.path.abspath(os.path.dirname(__file__)), "smartfocus.db"),
     )
-    if db_url.startswith("postgres://"):
-        db_url = db_url.replace("postgres://", "postgresql://", 1)
-    if db_url.startswith("postgresql") and "sslmode" not in db_url:
-        db_url += "&" if "?" in db_url else "?"
-        db_url += "sslmode=require"
+    if not db_url.startswith("sqlite"):
+        db_url = normalize_database_url(db_url)
     return create_engine(db_url)
 
 
