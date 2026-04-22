@@ -2,7 +2,8 @@ import pandas as pd
 from datetime import datetime, timedelta
 import os
 from sqlalchemy import create_engine, text
-from db_url import normalize_database_url
+from db_url import normalize_database_url, ipv4_hostaddr_for_hostname
+from urllib.parse import urlparse
 
 # Saudi Arabia Standard Time = UTC+3
 SAUDI_OFFSET = timedelta(hours=3)
@@ -19,9 +20,16 @@ def _get_engine():
         "DATABASE_URL",
         "sqlite:///" + os.path.join(os.path.abspath(os.path.dirname(__file__)), "smartfocus.db"),
     )
-    if not db_url.startswith("sqlite"):
-        db_url = normalize_database_url(db_url)
-    return create_engine(db_url)
+    if db_url.startswith("sqlite"):
+        return create_engine(db_url)
+    db_url = normalize_database_url(db_url)
+    p = urlparse(db_url)
+    opts = {}
+    if p.hostname:
+        h = ipv4_hostaddr_for_hostname(p.hostname, p.port or 5432)
+        if h:
+            opts["connect_args"] = {"hostaddr": h}
+    return create_engine(db_url, **opts) if opts else create_engine(db_url)
 
 
 def _load_completed(user_id):

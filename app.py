@@ -2,8 +2,9 @@ from flask import Flask, request, jsonify, render_template, redirect, url_for, f
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, User, Activity
 from analysis import get_dashboard_stats, get_recommendations, get_productivity_score, get_warnings
-from db_url import normalize_database_url
+from db_url import normalize_database_url, ipv4_hostaddr_for_hostname
 from datetime import datetime
+from urllib.parse import urlparse
 import os
 import uuid
 import re
@@ -19,6 +20,13 @@ _db_url = os.environ.get(
 )
 if not _db_url.startswith("sqlite"):
     _db_url = normalize_database_url(_db_url)
+    _p = urlparse(_db_url)
+    if _p.hostname:
+        _haddr = ipv4_hostaddr_for_hostname(_p.hostname, _p.port or 5432)
+        if _haddr:
+            app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+                "connect_args": {"hostaddr": _haddr},
+            }
 
 app.config["SQLALCHEMY_DATABASE_URI"] = _db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
