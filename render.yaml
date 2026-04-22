@@ -1,0 +1,11 @@
+# Optional: connect repo as a Blueprint, or set these in Render dashboard (Settings)
+# https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: wagti
+    runtime: python
+    buildCommand: pip install --upgrade pip setuptools wheel && pip install --no-cache-dir -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
