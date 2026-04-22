@@ -25,7 +25,7 @@ def _get_engine():
     db_url = normalize_database_url(db_url)
     p = urlparse(db_url)
     opts = {}
-    if p.hostname:
+    if os.environ.get("WAGTI_DB_IPV4") == "1" and p.hostname:
         h = ipv4_hostaddr_for_hostname(p.hostname, p.port or 5432)
         if h:
             opts["connect_args"] = {"hostaddr": h}

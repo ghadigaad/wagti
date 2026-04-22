@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for, flash
+from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, Response
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, User, Activity
 from analysis import get_dashboard_stats, get_recommendations, get_productivity_score, get_warnings
@@ -23,7 +23,8 @@ if not _db_url.startswith("sqlite"):
     try:
         u = normalize_database_url(_db_url)
         p = urlparse(u)
-        if p.hostname:
+        # Optional: force IPv4 if Render cannot reach Supabase over IPv6 (set WAGTI_DB_IPV4=1 on Render)
+        if os.environ.get("WAGTI_DB_IPV4") == "1" and p.hostname:
             h = ipv4_hostaddr_for_hostname(p.hostname, p.port or 5432)
             if h:
                 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
@@ -38,21 +39,11 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
 
-# ─── Flask-Login ──────────────────────────────────────────────────────────────
-
-login_manager = LoginManager(app)
-login_manager.login_view = "home"
-login_manager.login_message = ""
-
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
-
-
 # Do not run db.create_all() at import time: Gunicorn would exit with status 1
 # if the DB is unreachable, before the process can listen. Create tables on
 # the first request instead (Render can still "deploy" and you get usable logs).
+# This hook MUST be registered before Flask-Login, which runs load_user and can
+# hit User.query before this runs if the order is wrong (→ 500 on first load).
 _db_init_lock = threading.Lock()
 _db_tables_ready = False
 
@@ -69,12 +60,46 @@ def _ensure_db_tables():
         return
     if _db_tables_ready:
         return
+    durl = os.environ.get("DATABASE_URL") or ""
+    p = urlparse(durl)
+    if p.port == 6543 or ":6543" in durl:
+        return Response(
+            "Wagti cannot use the Supabase Transaction pooler (port 6543) for first-time setup. "
+            "In Supabase: Project Settings → Database → Connection string, set Type to URI, "
+            "and choose Session pooler or Direct connection (db project host, port 5432). "
+            "Paste that full URL as DATABASE_URL in Render, then redeploy.\n"
+            "Optional: set WAGTI_SHOW_DB_ERR=1 in Render to see raw DB errors on the page for debugging.",
+            status=503,
+            mimetype="text/plain; charset=utf-8",
+        )
     with _db_init_lock:
         if _db_tables_ready:
             return
         with app.app_context():
-            db.create_all()
+            try:
+                db.create_all()
+            except Exception as e:
+                app.logger.exception("db.create_all failed: %s", e)
+                if os.environ.get("WAGTI_SHOW_DB_ERR") == "1":
+                    return Response(
+                        f"Database error (set WAGTI_SHOW_DB_ERR=0 after debugging):\n\n{repr(e)}",
+                        status=500,
+                        mimetype="text/plain; charset=utf-8",
+                    )
+                raise
         _db_tables_ready = True
+
+
+# ─── Flask-Login (after _ensure_db_tables) ──────────────────────────────────
+
+login_manager = LoginManager(app)
+login_manager.login_view = "home"
+login_manager.login_message = ""
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 
 # ─── Auth Routes ──────────────────────────────────────────────────────────────
