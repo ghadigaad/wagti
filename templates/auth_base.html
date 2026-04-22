@@ -1,7 +1,16 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="{{ locale }}" dir="{{ 'rtl' if is_rtl else 'ltr' }}" data-theme="dark">
 <head>
-  <script>(function(){var t=localStorage.getItem("sf_theme")||"dark";document.documentElement.setAttribute("data-theme",t);})();</script>
+  <script>(function(){
+    var t=localStorage.getItem("sf_theme")||"dark";
+    document.documentElement.setAttribute("data-theme",t);
+    function getCookie(n){var m=document.cookie.match(new RegExp("(^| )"+n+"=([^;]+)"));return m?decodeURIComponent(m[2]):null;}
+    var L=getCookie("sf_locale")||localStorage.getItem("sf_locale")||"en";
+    if(L!=="ar"){L="en";}
+    document.documentElement.lang=L==="ar"?"ar":"en";
+    document.documentElement.dir=L==="ar"?"rtl":"ltr";
+    try{localStorage.setItem("sf_locale",L);}catch(e){}
+  })();</script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Wagti{% endblock %}</title>
@@ -10,27 +19,46 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Tajawal:wght@400;500;600;700&display=swap" rel="stylesheet" />
 </head>
 <body>
 
-  <!-- Minimal auth navbar: just theme toggle -->
   <nav class="auth-nav">
-    <a href="{{ url_for('landing') }}" class="auth-nav-back" title="Back to home">
+    <a href="{{ url_for('landing') }}" class="auth-nav-back" title="{{ t('auth.back_title') }}">
       <i class="fa-solid fa-arrow-left"></i>
     </a>
-    <button id="theme-toggle" class="nav-theme-btn" title="Switch theme">
-      <i class="fa-solid fa-moon" id="theme-icon"></i>
-    </button>
+    <div class="auth-nav-actions">
+      <button type="button" id="locale-toggle-auth" class="nav-locale-btn" title="{{ t('nav.lang_switch_ar') if locale == 'en' else t('nav.lang_switch_en') }}">
+        {% if locale == 'ar' %}EN{% else %}عربي{% endif %}
+      </button>
+      <button id="theme-toggle" class="nav-theme-btn" title="{{ t('nav.theme_title') }}">
+        <i class="fa-solid fa-moon" id="theme-icon"></i>
+      </button>
+    </div>
   </nav>
 
   <main class="auth-main">
     {% block content %}{% endblock %}
   </main>
 
+  <script>window.__I18N__={{ js_i18n|tojson }};</script>
   {% block scripts %}{% endblock %}
   <script>
     (function() {
+      function setCookie(name, value, days) {
+        var maxAge = days * 24 * 60 * 60;
+        document.cookie = name + "=" + encodeURIComponent(value) + ";path=/;max-age=" + maxAge + ";SameSite=Lax";
+      }
+      var btnLocale = document.getElementById("locale-toggle-auth");
+      if (btnLocale) {
+        btnLocale.addEventListener("click", function() {
+          var next = document.documentElement.lang === "ar" ? "en" : "ar";
+          setCookie("sf_locale", next, 365);
+          try { localStorage.setItem("sf_locale", next); } catch (e) {}
+          location.reload();
+        });
+      }
+
       var btn  = document.getElementById("theme-toggle");
       var icon = document.getElementById("theme-icon");
       function applyTheme(t) {

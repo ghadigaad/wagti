@@ -1,3 +1,30 @@
+/* ─── i18n ───────────────────────────────────────────────────────────────────── */
+function I(key) {
+  const x = window.__I18N__;
+  return x && x[key] !== undefined ? x[key] : key;
+}
+
+function localeDigits(n) {
+  if (document.documentElement.lang !== "ar") return String(n);
+  const num = Number(n);
+  return Number.isNaN(num) ? String(n) : num.toLocaleString("ar-SA", { maximumFractionDigits: 20 });
+}
+
+function pad2Time(n) {
+  if (document.documentElement.lang !== "ar") return String(n).padStart(2, "0");
+  return Number(n).toLocaleString("ar-SA", { minimumIntegerDigits: 2, maximumFractionDigits: 0, useGrouping: false });
+}
+
+function catLabel(c) {
+  const m = { Study: I("cat_study"), Work: I("cat_work"), Personal: I("cat_personal") };
+  return m[c] || c;
+}
+
+function statusLbl(s) {
+  const m = { pending: I("status_pending"), active: I("status_active"), completed: I("status_completed") };
+  return m[s] || s;
+}
+
 /* ─── State ──────────────────────────────────────────────────────────────────── */
 let allTasks = [];
 let tickInterval = null;
@@ -9,7 +36,6 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("filter-status").addEventListener("change", renderTasks);
   document.getElementById("filter-cat").addEventListener("change", renderTasks);
 
-  // Live elapsed time ticker
   tickInterval = setInterval(tick, 1000);
 });
 
@@ -32,7 +58,7 @@ async function loadTasks() {
     renderTasks();
     updateStats();
   } catch (e) {
-    toast("Failed to load tasks: " + e.message, "error");
+    toast(I("js_load_fail") + e.message, "error");
   }
 }
 
@@ -41,7 +67,7 @@ async function handleAddTask(e) {
   e.preventDefault();
   const name = document.getElementById("task_name").value.trim();
   const category = document.getElementById("category").value;
-  const expected_duration = parseInt(document.getElementById("expected_duration").value) || 25;
+  const expected_duration = parseInt(document.getElementById("expected_duration").value, 10) || 25;
 
   if (!name) return;
 
@@ -52,23 +78,23 @@ async function handleAddTask(e) {
     updateStats();
     document.getElementById("task-form").reset();
     document.getElementById("expected_duration").value = 25;
-    toast("Task added!", "success");
+    toast(I("js_task_added"), "success");
   } catch (e) {
-    toast("Error: " + e.message, "error");
+    toast(I("js_error_prefix") + e.message, "error");
   }
 }
 
 /* ─── Delete task ────────────────────────────────────────────────────────────── */
 async function deleteTask(id) {
-  if (!confirm("Delete this task?")) return;
+  if (!confirm(I("js_delete_confirm"))) return;
   try {
     await api(`/api/tasks/${id}`, "DELETE");
     allTasks = allTasks.filter(t => t.id !== id);
     renderTasks();
     updateStats();
-    toast("Task deleted", "info");
+    toast(I("js_task_deleted"), "info");
   } catch (e) {
-    toast("Error: " + e.message, "error");
+    toast(I("js_error_prefix") + e.message, "error");
   }
 }
 
@@ -76,14 +102,13 @@ async function deleteTask(id) {
 async function startTask(id) {
   try {
     const updated = await api(`/api/tasks/${id}/start`, "POST");
-    // Mark previously active as pending in local state
     allTasks = allTasks.map(t => t.status === "active" ? { ...t, status: "pending" } : t);
     updateTask(updated);
     renderTasks();
     updateStats();
-    toast("Tracking started!", "success");
+    toast(I("js_tracking_started"), "success");
   } catch (e) {
-    toast("Error: " + e.message, "error");
+    toast(I("js_error_prefix") + e.message, "error");
   }
 }
 
@@ -94,9 +119,9 @@ async function stopTask(id) {
     updateTask(updated);
     renderTasks();
     updateStats();
-    toast("Task completed! Great work.", "success");
+    toast(I("js_task_done"), "success");
   } catch (e) {
-    toast("Error: " + e.message, "error");
+    toast(I("js_error_prefix") + e.message, "error");
   }
 }
 
@@ -121,7 +146,7 @@ function renderTasks() {
   const filterStatus = document.getElementById("filter-status").value;
   const filterCat = document.getElementById("filter-cat").value;
 
-  let tasks = allTasks.filter(t => {
+  const tasks = allTasks.filter(t => {
     const matchStatus = filterStatus === "all" || t.status === filterStatus;
     const matchCat = filterCat === "all" || t.category === filterCat;
     return matchStatus && matchCat;
@@ -133,7 +158,7 @@ function renderTasks() {
     container.innerHTML = `
       <div class="empty-state">
         <i class="fa-regular fa-clipboard"></i>
-        <p>No tasks match your filters.</p>
+        <p>${allTasks.length === 0 ? I("tasks_empty") : I("js_no_match_filters")}</p>
       </div>`;
     return;
   }
@@ -145,28 +170,30 @@ function taskHTML(t) {
   const catEmoji = { Study: "📚", Work: "💼", Personal: "🧘" }[t.category] || "";
   const catClass = `badge-${t.category.toLowerCase()}`;
   const statusClass = `badge-${t.status}`;
+  const cLab = catLabel(t.category);
+  const sLab = statusLbl(t.status);
 
-  const elapsed = t.status === "active"
-    ? formatDuration((t.duration || 0))
-    : formatDuration(t.duration || 0);
+  const elapsed = formatDuration(t.duration || 0);
 
   const expectedSec = (t.expected_duration || 25) * 60;
   const progress = t.duration ? Math.min(100, Math.round((t.duration / expectedSec) * 100)) : 0;
 
   const actionBtns = t.status === "pending"
-    ? `<button class="btn btn-teal btn-sm" onclick="startTask(${t.id})"><i class="fa-solid fa-play"></i> Start</button>`
+    ? `<button class="btn btn-teal btn-sm" onclick="startTask(${t.id})"><i class="fa-solid fa-play"></i> ${I("js_start")}</button>`
     : t.status === "active"
-    ? `<button class="btn btn-danger btn-sm" onclick="stopTask(${t.id})"><i class="fa-solid fa-stop"></i> Stop</button>`
-    : `<span class="badge badge-completed"><i class="fa-solid fa-check"></i> Done</span>`;
+    ? `<button class="btn btn-danger btn-sm" onclick="stopTask(${t.id})"><i class="fa-solid fa-stop"></i> ${I("js_stop")}</button>`
+    : `<span class="badge badge-completed"><i class="fa-solid fa-check"></i> ${I("js_done")}</span>`;
+
+  const suf = I("js_min_suffix");
 
   return `
     <div class="task-item ${t.status}" data-id="${t.id}">
       <div class="task-info">
         <div class="task-name">${escapeHTML(t.task_name)}</div>
         <div class="task-meta">
-          <span class="badge ${catClass}">${catEmoji} ${t.category}</span>
-          <span class="badge ${statusClass}">${t.status}</span>
-          <span><i class="fa-regular fa-clock"></i> <span class="task-elapsed">${elapsed}</span> / ${t.expected_duration} min</span>
+          <span class="badge ${catClass}">${catEmoji} ${cLab}</span>
+          <span class="badge ${statusClass}">${sLab}</span>
+          <span><i class="fa-regular fa-clock"></i> <span class="task-elapsed">${elapsed}</span> / ${localeDigits(t.expected_duration)}${suf}</span>
         </div>
         <div class="progress-bar" style="margin-top:8px;">
           <div class="progress-fill" style="width:${progress}%;"></div>
@@ -174,7 +201,7 @@ function taskHTML(t) {
       </div>
       <div class="task-actions">
         ${actionBtns}
-        <button class="btn btn-ghost btn-sm btn-icon" onclick="deleteTask(${t.id})" title="Delete">
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="deleteTask(${t.id})" title="${I("js_delete_title")}">
           <i class="fa-solid fa-trash"></i>
         </button>
       </div>
@@ -183,9 +210,8 @@ function taskHTML(t) {
 
 /* ─── Stats ──────────────────────────────────────────────────────────────────── */
 function saudiDateString(date) {
-  // UTC+3 offset
   const saudi = new Date(date.getTime() + 3 * 60 * 60 * 1000);
-  return saudi.toISOString().slice(0, 10); // "YYYY-MM-DD"
+  return saudi.toISOString().slice(0, 10);
 }
 
 function updateStats() {
@@ -200,23 +226,29 @@ function updateStats() {
   const completed = todayTasks.filter(t => t.status === "completed").length;
   const totalSec = todayTasks.reduce((s, t) => s + (t.duration || 0), 0);
 
-  document.getElementById("stat-active").textContent = active;
-  document.getElementById("stat-completed").textContent = completed;
+  document.getElementById("stat-active").textContent = localeDigits(active);
+  document.getElementById("stat-completed").textContent = localeDigits(completed);
   document.getElementById("stat-time").textContent = formatDuration(totalSec, true);
 }
 
 /* ─── Utilities ──────────────────────────────────────────────────────────────── */
 function formatDuration(seconds, short = false) {
-  if (!seconds || seconds < 0) return short ? "0 min" : "0:00";
+  const zmin = I("dash_fmt_min");
+  const suf = I("js_min_suffix");
+  const jm = I("js_min");
+  if (!seconds || seconds < 0) {
+    return short ? zmin : (document.documentElement.lang === "ar" ? `${pad2Time(0)}:${pad2Time(0)}` : "0:00");
+  }
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
+  const fh = I("dash_fmt_h");
   if (short) {
-    if (h > 0) return `${h}h ${m}m`;
-    return `${m} min`;
+    if (h > 0) return `${localeDigits(h)}${fh} ${localeDigits(m)}${jm}`;
+    return `${localeDigits(m)}${suf}`;
   }
-  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  return `${m}:${String(s).padStart(2, "0")}`;
+  if (h > 0) return `${localeDigits(h)}:${pad2Time(m)}:${pad2Time(s)}`;
+  return `${localeDigits(m)}:${pad2Time(s)}`;
 }
 
 function escapeHTML(str) {

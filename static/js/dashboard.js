@@ -1,6 +1,35 @@
+/* ─── i18n ───────────────────────────────────────────────────────────────────── */
+function I(key) {
+  const x = window.__I18N__;
+  return x && x[key] !== undefined ? x[key] : key;
+}
+
+function localeDigits(n) {
+  if (document.documentElement.lang !== "ar") return String(n);
+  const num = Number(n);
+  return Number.isNaN(num) ? String(n) : num.toLocaleString("ar-SA", { maximumFractionDigits: 20 });
+}
+
+function localeFixed(n, places) {
+  const num = Number(n);
+  if (document.documentElement.lang !== "ar") return num.toFixed(places);
+  return Number.isNaN(num) ? String(n) : num.toLocaleString("ar-SA", {
+    minimumFractionDigits: places,
+    maximumFractionDigits: places,
+  });
+}
+
+const isRtl = () => document.documentElement.dir === "rtl";
+
 /* ─── Chart.js global defaults ───────────────────────────────────────────────── */
+function applyChartFont() {
+  const ar = document.documentElement.lang === "ar";
+  Chart.defaults.font.family = ar ? "'Tajawal', 'Inter', system-ui, sans-serif" : "'Inter', system-ui, sans-serif";
+}
+
+applyChartFont();
+
 Chart.defaults.color = "#94a3b8";
-Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
 Chart.defaults.font.size = 12;
 
 const COLORS = {
@@ -19,8 +48,8 @@ const CATEGORY_COLORS = {
   Personal: COLORS.teal,
 };
 
-/* ─── Init ───────────────────────────────────────────────────────────────────── */
 document.addEventListener("DOMContentLoaded", async () => {
+  applyChartFont();
   await Promise.all([
     loadDashboard(),
     loadScore(),
@@ -29,7 +58,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   ]);
 });
 
-/* ─── Dashboard data ─────────────────────────────────────────────────────────── */
 async function loadDashboard() {
   try {
     const data = await fetch("/api/dashboard").then(r => r.json());
@@ -42,22 +70,21 @@ async function loadDashboard() {
   }
 }
 
-/* ─── Summary cards ──────────────────────────────────────────────────────────── */
 function populateSummary(s) {
   const m = s.total_today_min;
+  const fh = I("dash_fmt_h");
   document.getElementById("s-today").textContent =
-    m >= 60 ? `${(m / 60).toFixed(1)}h` : m > 0 ? `${m} min` : "0 min";
-  document.getElementById("s-tasks").textContent   = s.total_tasks_today;
-  document.getElementById("s-alltime").textContent = `${s.total_all_time_hrs}h`;
+    m >= 60 ? `${localeFixed(m / 60, 1)}${fh}` : m > 0 ? `${localeDigits(m)}${I("js_min_suffix")}` : I("dash_fmt_min");
+  document.getElementById("s-tasks").textContent = localeDigits(s.total_tasks_today);
+  document.getElementById("s-alltime").textContent = `${localeDigits(s.total_all_time_hrs)}${fh}`;
 }
 
 function fmtMin(v) {
-  if (v === 0) return "0 min";
-  if (v < 1)  return `${Math.round(v * 60)}s`;
-  return `${v} min`;
+  if (v === 0) return I("dash_fmt_min");
+  if (v < 1)  return `${localeDigits(Math.round(v * 60))}${I("dash_fmt_sec")}`;
+  return `${localeDigits(v)}${I("js_min_suffix")}`;
 }
 
-/* ─── Productivity Score ─────────────────────────────────────────────────────── */
 async function loadScore() {
   try {
     const s = await fetch("/api/score").then(r => r.json());
@@ -70,25 +97,23 @@ async function loadScore() {
 function renderScore(s) {
   const score = s.score || 0;
 
-  // Animate number
   const numEl = document.getElementById("s-score");
   let current = 0;
+  numEl.textContent = localeDigits(0);
   const step = Math.ceil(score / 40);
   const timer = setInterval(() => {
     current = Math.min(current + step, score);
-    numEl.textContent = current;
+    numEl.textContent = localeDigits(current);
     if (current >= score) clearInterval(timer);
   }, 30);
 
-  // SVG arc (circumference = 2π×18 ≈ 113.1)
-  const arc  = document.getElementById("score-arc");
+  const arc = document.getElementById("score-arc");
   const circ = 113.1;
   const offset = circ - (score / 100) * circ;
   setTimeout(() => {
     arc.style.strokeDashoffset = offset;
   }, 100);
 
-  // Label & color
   const labelEl = document.getElementById("s-score-label");
   labelEl.textContent = s.label || "—";
 
@@ -99,11 +124,10 @@ function renderScore(s) {
   arc.style.stroke = color;
   labelEl.style.color = color;
 
-  // Breakdown bars
   const bd = s.breakdown || {};
   setBreakdown("focus", bd.focus || 0, 40);
   setBreakdown("tasks", bd.tasks || 0, 30);
-  setBreakdown("cons",  bd.consistency || 0, 30);
+  setBreakdown("cons", bd.consistency || 0, 30);
 
   document.getElementById("score-breakdown-card").style.display = "block";
 }
@@ -111,10 +135,11 @@ function renderScore(s) {
 function setBreakdown(key, pts, max) {
   const pct = Math.round((pts / max) * 100);
   document.getElementById(`br-${key}`).style.width = `${pct}%`;
-  document.getElementById(`br-${key}-pts`).textContent = `${pts} / ${max} pts`;
+  const ptWord = I("dash_breakdown_pts");
+  document.getElementById(`br-${key}-pts`).textContent =
+    `${localeDigits(pts)} / ${localeDigits(max)} ${ptWord}`;
 }
 
-/* ─── Smart Warnings ─────────────────────────────────────────────────────────── */
 async function loadWarnings() {
   try {
     const warnings = await fetch("/api/warnings").then(r => r.json());
@@ -141,7 +166,6 @@ function renderWarnings(warnings) {
   `).join("");
 }
 
-/* ─── Recommendations + Prediction ──────────────────────────────────────────── */
 async function loadRecommendations() {
   try {
     const result = await fetch("/api/recommendations").then(r => r.json());
@@ -149,14 +173,15 @@ async function loadRecommendations() {
     renderPrediction(result.prediction || null);
   } catch (e) {
     document.getElementById("rec-list").innerHTML =
-      `<div class="empty-state"><i class="fa-solid fa-circle-exclamation"></i><p>Could not load recommendations.</p></div>`;
+      `<div class="empty-state"><i class="fa-solid fa-circle-exclamation"></i><p>${I("dash_load_rec_fail")}</p></div>`;
   }
 }
 
 function renderRecommendations(tips) {
   const container = document.getElementById("rec-list");
   if (!tips.length) {
-    container.innerHTML = `<div class="empty-state"><i class="fa-solid fa-lightbulb"></i><p>Complete more tasks to unlock insights.</p></div>`;
+    container.innerHTML =
+      `<div class="empty-state"><i class="fa-solid fa-lightbulb"></i><p>${I("dash_unlock_insights")}</p></div>`;
     return;
   }
 
@@ -179,15 +204,24 @@ function renderPrediction(pred) {
   const card = document.getElementById("prediction-card");
   card.style.display = "block";
 
+  if (pred.title_line) {
+    document.getElementById("pred-title").textContent = pred.title_line;
+    document.getElementById("pred-sub").textContent = pred.subtitle_line || "";
+    document.getElementById("pred-confidence").innerHTML =
+      `<i class="fa-solid fa-signal"></i> ${pred.confidence_line || ""}`;
+    return;
+  }
+
+  const titleTpl = I("dash_pred_title");
+  const subTpl = I("dash_pred_sub");
   document.getElementById("pred-title").textContent =
-    `Tomorrow (${pred.day_name}): Best focus at ${pred.range_label}`;
+    titleTpl.replace("{day}", pred.day_name).replace("{range}", pred.range_label);
   document.getElementById("pred-sub").textContent =
-    `Based on your historical patterns, you are most productive during this window on ${pred.day_name}s.`;
+    subTpl.replace(/\{day\}/g, pred.day_name);
   document.getElementById("pred-confidence").innerHTML =
-    `<i class="fa-solid fa-signal"></i> Confidence: ${pred.confidence} &nbsp;·&nbsp; ${pred.sessions} past sessions`;
+    `<i class="fa-solid fa-signal"></i> ${I("dash_pred_confidence")} ${pred.confidence} &nbsp;·&nbsp; ${pred.sessions} ${I("dash_sessions_word")}`;
 }
 
-/* ─── Daily Bar Chart ────────────────────────────────────────────────────────── */
 function renderDailyChart(data) {
   const ctx = document.getElementById("chart-daily").getContext("2d");
   new Chart(ctx, {
@@ -195,13 +229,13 @@ function renderDailyChart(data) {
     data: {
       labels: data.labels,
       datasets: [{
-        label: "Minutes",
-        data:  data.values,
+        label: I("dash_chart_minutes"),
+        data: data.values,
         backgroundColor: data.values.map((_, i) =>
           i === data.values.length - 1 ? COLORS.primary : "rgba(236,72,153,0.3)"
         ),
-        borderColor:  COLORS.primary,
-        borderWidth:  1.5,
+        borderColor: COLORS.primary,
+        borderWidth: 1.5,
         borderRadius: 6,
       }],
     },
@@ -210,13 +244,13 @@ function renderDailyChart(data) {
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: ctx => fmtMin(ctx.parsed.y) } },
+        tooltip: { callbacks: { label: c => fmtMin(c.parsed.y) } },
       },
       scales: {
         x: { grid: { color: "rgba(255,255,255,0.05)" } },
         y: {
-          grid:       { color: "rgba(255,255,255,0.05)" },
-          ticks:      { callback: v => fmtMin(v) },
+          grid: { color: "rgba(255,255,255,0.05)" },
+          ticks: { callback: v => fmtMin(v) },
           beginAtZero: true,
         },
       },
@@ -224,27 +258,31 @@ function renderDailyChart(data) {
   });
 }
 
-/* ─── Category Doughnut Chart ────────────────────────────────────────────────── */
 function renderCategoryChart(data) {
   const ctx = document.getElementById("chart-category").getContext("2d");
 
   if (!data.labels.length) {
     ctx.canvas.parentElement.innerHTML =
-      `<div class="empty-state" style="padding:2rem;"><i class="fa-solid fa-chart-pie"></i><p>No data for today yet.</p></div>`;
+      `<div class="empty-state" style="padding:2rem;"><i class="fa-solid fa-chart-pie"></i><p>${I("dash_no_cat_data")}</p></div>`;
     return;
   }
 
-  const bgColors = data.labels.map(l => CATEGORY_COLORS[l] || COLORS.muted);
+  const keysList = data.keys && data.keys.length === data.labels.length ? data.keys : null;
+  const bgColors = data.labels.map((_, i) => {
+    const k = keysList ? keysList[i] : ["Study", "Work", "Personal"][i];
+    return CATEGORY_COLORS[k] || COLORS.muted;
+  });
+
   new Chart(ctx, {
     type: "doughnut",
     data: {
       labels: data.labels,
       datasets: [{
-        data:            data.values,
+        data: data.values,
         backgroundColor: bgColors,
-        borderColor:     "#1a0b2e",
-        borderWidth:     3,
-        hoverOffset:     8,
+        borderColor: "#1a0b2e",
+        borderWidth: 3,
+        hoverOffset: 8,
       }],
     },
     options: {
@@ -254,15 +292,15 @@ function renderCategoryChart(data) {
       plugins: {
         legend: {
           position: "bottom",
-          labels:   { padding: 16, usePointStyle: true, pointStyleWidth: 10 },
+          rtl: isRtl(),
+          labels: { padding: 16, usePointStyle: true, pointStyleWidth: 10 },
         },
-        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${fmtMin(ctx.parsed)}` } },
+        tooltip: { callbacks: { label: c => ` ${c.label}: ${fmtMin(c.parsed)}` } },
       },
     },
   });
 }
 
-/* ─── Hourly Line Chart ──────────────────────────────────────────────────────── */
 function renderHourlyChart(data) {
   const ctx = document.getElementById("chart-hourly").getContext("2d");
 
@@ -270,37 +308,40 @@ function renderHourlyChart(data) {
   gradient.addColorStop(0, "rgba(236, 72, 153, 0.35)");
   gradient.addColorStop(1, "rgba(236, 72, 153, 0)");
 
+  const rtl = isRtl();
+
   new Chart(ctx, {
     type: "line",
     data: {
       labels: data.labels,
       datasets: [{
-        label:              "Minutes",
-        data:               data.values,
-        borderColor:        COLORS.primary,
-        backgroundColor:    gradient,
-        fill:               true,
-        tension:            0.4,
-        pointRadius:        data.values.map(v => v > 0 ? 4 : 0),
+        label: I("dash_chart_minutes"),
+        data: data.values,
+        borderColor: COLORS.primary,
+        backgroundColor: gradient,
+        fill: true,
+        tension: 0.4,
+        pointRadius: data.values.map(v => v > 0 ? 4 : 0),
         pointBackgroundColor: COLORS.primary,
-        borderWidth:        2,
+        borderWidth: 2,
       }],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: ctx => fmtMin(ctx.parsed.y) } },
+        legend: { display: false, rtl },
+        tooltip: { callbacks: { label: c => fmtMin(c.parsed.y) } },
       },
       scales: {
         x: {
-          grid:  { color: "rgba(255,255,255,0.05)" },
+          reverse: rtl,
+          grid: { color: "rgba(255,255,255,0.05)" },
           ticks: { maxTicksLimit: 12, callback: (val, idx) => data.labels[idx] },
         },
         y: {
-          grid:        { color: "rgba(255,255,255,0.05)" },
-          ticks:       { callback: v => fmtMin(v) },
+          grid: { color: "rgba(255,255,255,0.05)" },
+          ticks: { callback: v => fmtMin(v) },
           beginAtZero: true,
         },
       },

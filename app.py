@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, render_template, redirect, url_for, f
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, User, Activity
 from analysis import get_dashboard_stats, get_recommendations, get_productivity_score, get_warnings
+from i18n import get_locale, template_globals, tr
 from db_url import normalize_database_url, ipv4_preferred_connect_args_for_url
 from sqlalchemy.exc import OperationalError
 from datetime import datetime
@@ -135,6 +136,11 @@ login_manager.login_view = "home"
 login_manager.login_message = ""
 
 
+@app.context_processor
+def _inject_i18n():
+    return template_globals()
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -153,27 +159,34 @@ def register():
         password = request.form.get("password", "")
         confirm  = request.form.get("confirm", "")
 
+        loc = get_locale()
+
         def pw_errors(p):
             errs = []
-            if len(p) < 8:              errs.append("at least 8 characters")
-            if not re.search(r"[A-Z]", p): errs.append("one uppercase letter")
-            if not re.search(r"[0-9]", p): errs.append("one number")
-            if not re.search(r"[^A-Za-z0-9]", p): errs.append("one special character")
+            if len(p) < 8:
+                errs.append(tr("pw.err.len", loc))
+            if not re.search(r"[A-Z]", p):
+                errs.append(tr("pw.err.upper", loc))
+            if not re.search(r"[0-9]", p):
+                errs.append(tr("pw.err.digit", loc))
+            if not re.search(r"[^A-Za-z0-9]", p):
+                errs.append(tr("pw.err.special", loc))
             return errs
 
         errors = []
 
         if not username or not email or not password:
-            errors.append("All fields are required.")
+            errors.append(tr("flash.all_required", loc))
         else:
-            if pw_errors(password):
-                errors.append(f"Password must contain: {', '.join(pw_errors(password))}.")
+            pe = pw_errors(password)
+            if pe:
+                errors.append(tr("flash.pw_rules", loc, rules=", ".join(pe)))
             if password != confirm:
-                errors.append("Passwords do not match.")
+                errors.append(tr("flash.pw_mismatch", loc))
             if User.query.filter_by(username=username).first():
-                errors.append("Username already taken.")
+                errors.append(tr("flash.user_taken", loc))
             if User.query.filter_by(email=email).first():
-                errors.append("Email already registered.")
+                errors.append(tr("flash.email_taken", loc))
 
         if errors:
             flash(" — ".join(errors), "danger")
@@ -203,7 +216,7 @@ def login():
             next_page = request.args.get("next")
             return redirect(next_page or url_for("home"))
         else:
-            flash("Incorrect username or password.", "danger")
+            flash(tr("flash.login_bad", get_locale()), "danger")
 
     return render_template("login.html")
 
@@ -277,8 +290,9 @@ def get_tasks():
 @login_required
 def create_task():
     data = request.get_json()
+    loc = get_locale()
     if not data or not data.get("task_name"):
-        return jsonify({"error": "task_name is required"}), 400
+        return jsonify({"error": tr("api.task_name_required", loc)}), 400
 
     task = Activity(
         user_id=current_user.id,
@@ -297,7 +311,7 @@ def delete_task(task_id):
     task = Activity.query.filter_by(id=task_id, user_id=current_user.id).first_or_404()
     db.session.delete(task)
     db.session.commit()
-    return jsonify({"message": "Task deleted"})
+    return jsonify({"message": tr("api.task_deleted", get_locale())})
 
 
 @app.route("/api/tasks/<int:task_id>/start", methods=["POST"])
@@ -325,7 +339,7 @@ def start_task(task_id):
 def stop_task(task_id):
     task = Activity.query.filter_by(id=task_id, user_id=current_user.id).first_or_404()
     if task.status != "active":
-        return jsonify({"error": "Task is not active"}), 400
+        return jsonify({"error": tr("api.task_not_active", get_locale())}), 400
 
     task.end_time = datetime.utcnow()
     elapsed = int((task.end_time - task.start_time).total_seconds())
@@ -340,25 +354,29 @@ def stop_task(task_id):
 @app.route("/api/dashboard")
 @login_required
 def api_dashboard():
-    return jsonify(get_dashboard_stats(current_user.id))
+    loc = get_locale()
+    return jsonify(get_dashboard_stats(current_user.id, loc))
 
 
 @app.route("/api/recommendations")
 @login_required
 def api_recommendations():
-    return jsonify(get_recommendations(current_user.id))
+    loc = get_locale()
+    return jsonify(get_recommendations(current_user.id, loc))
 
 
 @app.route("/api/score")
 @login_required
 def api_score():
-    return jsonify(get_productivity_score(current_user.id))
+    loc = get_locale()
+    return jsonify(get_productivity_score(current_user.id, loc))
 
 
 @app.route("/api/warnings")
 @login_required
 def api_warnings():
-    return jsonify(get_warnings(current_user.id))
+    loc = get_locale()
+    return jsonify(get_warnings(current_user.id, loc))
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 {% extends "auth_base.html" %}
-{% block title %}Register — Wagti{% endblock %}
+{% block title %}{{ t('auth.register_title') }}{% endblock %}
 
 {% block content %}
 <div class="auth-card">
@@ -7,11 +7,11 @@
     <div class="auth-logo">
       <img src="{{ url_for('static', filename='logo.png') }}" alt="Wagti" />
       <div class="auth-brand-name">Wagti</div>
-      <div class="auth-tagline">Track. Focus. Improve.</div>
+      <div class="auth-tagline">{{ t('brand.tagline') }}</div>
     </div>
 
-    <h2 class="auth-title">Create your account</h2>
-    <p class="auth-sub">Create your account and start focusing in seconds.</p>
+    <h2 class="auth-title">{{ t('auth.create_title') }}</h2>
+    <p class="auth-sub">{{ t('auth.create_sub') }}</p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for cat, msg in messages %}
@@ -23,82 +23,81 @@
 
     <form method="POST" action="{{ url_for('register') }}" class="auth-form" id="reg-form">
       <div class="form-group">
-        <label for="username">Username</label>
+        <label for="username">{{ t('auth.username') }}</label>
         <input type="text" id="username" name="username" class="form-control"
-               placeholder="Enter your username" required autofocus />
+               placeholder="{{ t('auth.ph_user') }}" required autofocus />
       </div>
       <div class="form-group">
-        <label for="email">Email</label>
+        <label for="email">{{ t('auth.email') }}</label>
         <input type="email" id="email" name="email" class="form-control"
-               placeholder="you@example.com" required />
+               placeholder="{{ t('auth.ph_email') }}" required />
       </div>
       <div class="form-group">
-        <label for="password">Password</label>
+        <label for="password">{{ t('auth.password') }}</label>
         <input type="password" id="password" name="password" class="form-control"
-               placeholder="Create a strong password" required autocomplete="new-password" />
+               placeholder="{{ t('auth.ph_create_pw') }}" required autocomplete="new-password" />
 
-        <!-- Strength bar -->
         <div class="pw-strength-bar" id="pw-bar">
           <div class="pw-strength-fill" id="pw-fill"></div>
         </div>
         <div class="pw-strength-label" id="pw-label"></div>
 
-        <!-- Requirements checklist -->
         <ul class="pw-requirements">
-          <li id="req-len"><i class="fa-solid fa-circle"></i> At least 8 characters</li>
-          <li id="req-upper"><i class="fa-solid fa-circle"></i> One uppercase letter (A–Z)</li>
-          <li id="req-digit"><i class="fa-solid fa-circle"></i> One number (0–9)</li>
-          <li id="req-special"><i class="fa-solid fa-circle"></i> One special character (!@#$...)</li>
+          <li id="req-len"><i class="fa-solid fa-circle"></i> {{ t('auth.req_len') }}</li>
+          <li id="req-upper"><i class="fa-solid fa-circle"></i> {{ t('auth.req_upper') }}</li>
+          <li id="req-digit"><i class="fa-solid fa-circle"></i> {{ t('auth.req_digit') }}</li>
+          <li id="req-special"><i class="fa-solid fa-circle"></i> {{ t('auth.req_special') }}</li>
         </ul>
       </div>
       <div class="form-group">
-        <label for="confirm">Confirm Password</label>
+        <label for="confirm">{{ t('auth.confirm') }}</label>
         <input type="password" id="confirm" name="confirm" class="form-control"
-               placeholder="Repeat your password" required />
+               placeholder="{{ t('auth.ph_confirm') }}" required />
         <div class="pw-match-msg" id="pw-match"></div>
       </div>
       <button type="submit" class="btn btn-primary auth-btn" id="submit-btn">
-        <i class="fa-solid fa-user-plus"></i> Create Account
+        <i class="fa-solid fa-user-plus"></i> {{ t('auth.create_account') }}
       </button>
     </form>
 
     <p class="auth-switch">
-      Already have an account?
-      <a href="{{ url_for('login') }}">Sign in</a>
+      {{ t('auth.have_account') }}
+      <a href="{{ url_for('login') }}">{{ t('auth.sign_in_link') }}</a>
     </p>
 
 </div>
 
 <script>
 (function () {
-  const pwInput   = document.getElementById("password");
-  const confirm   = document.getElementById("confirm");
-  const fill      = document.getElementById("pw-fill");
-  const label     = document.getElementById("pw-label");
-  const matchMsg  = document.getElementById("pw-match");
-  const submitBtn = document.getElementById("submit-btn");
+  var I = window.__I18N__ || {};
+  var pwInput   = document.getElementById("password");
+  var confirm   = document.getElementById("confirm");
+  var fill      = document.getElementById("pw-fill");
+  var label     = document.getElementById("pw-label");
+  var matchMsg  = document.getElementById("pw-match");
+  var submitBtn = document.getElementById("submit-btn");
 
-  const reqs = {
-    len:     { el: document.getElementById("req-len"),     test: v => v.length >= 8 },
-    upper:   { el: document.getElementById("req-upper"),   test: v => /[A-Z]/.test(v) },
-    digit:   { el: document.getElementById("req-digit"),   test: v => /[0-9]/.test(v) },
-    special: { el: document.getElementById("req-special"), test: v => /[^A-Za-z0-9]/.test(v) },
+  var reqs = {
+    len:     { el: document.getElementById("req-len"),     test: function(v) { return v.length >= 8; } },
+    upper:   { el: document.getElementById("req-upper"),   test: function(v) { return /[A-Z]/.test(v); } },
+    digit:   { el: document.getElementById("req-digit"),   test: function(v) { return /[0-9]/.test(v); } },
+    special: { el: document.getElementById("req-special"), test: function(v) { return /[^A-Za-z0-9]/.test(v); } },
   };
 
-  const strengthLevels = [
+  var strengthLevels = [
     { label: "",         color: "transparent", width: "0%" },
-    { label: "Weak",     color: "#ef4444",     width: "25%" },
-    { label: "Fair",     color: "#f59e0b",     width: "50%" },
-    { label: "Good",     color: "#3b82f6",     width: "75%" },
-    { label: "Strong",   color: "#22c55e",     width: "100%" },
+    { label: I.auth_pw_weak || "Weak",     color: "#ef4444",     width: "25%" },
+    { label: I.auth_pw_fair || "Fair",     color: "#f59e0b",     width: "50%" },
+    { label: I.auth_pw_good || "Good",     color: "#3b82f6",     width: "75%" },
+    { label: I.auth_pw_strong || "Strong",   color: "#22c55e",     width: "100%" },
   ];
 
   function evaluate(val) {
-    let score = 0;
-    for (const key in reqs) {
-      const passed = reqs[key].test(val);
-      const li     = reqs[key].el;
-      const icon   = li.querySelector("i");
+    var score = 0;
+    for (var key in reqs) {
+      var passed = reqs[key].test(val);
+      var li     = reqs[key].el;
+      var icon   = li.querySelector("i");
       if (passed) {
         score++;
         li.classList.add("passed");
@@ -112,10 +111,10 @@
   }
 
   pwInput.addEventListener("input", function () {
-    const val   = this.value;
-    const score = evaluate(val);
-    const s     = val.length === 0 ? 0 : score;
-    const lvl   = strengthLevels[s];
+    var val   = this.value;
+    var score = evaluate(val);
+    var s     = val.length === 0 ? 0 : score;
+    var lvl   = strengthLevels[s];
 
     fill.style.width      = lvl.width;
     fill.style.background = lvl.color;
@@ -128,21 +127,21 @@
   confirm.addEventListener("input", checkMatch);
 
   function checkMatch() {
-    const pw = pwInput.value;
-    const cv = confirm.value;
+    var pw = pwInput.value;
+    var cv = confirm.value;
     if (!cv) { matchMsg.textContent = ""; return; }
     if (pw === cv) {
-      matchMsg.textContent = "✓ Passwords match";
+      matchMsg.textContent = I.auth_pw_match_ok || "✓ Passwords match";
       matchMsg.style.color = "#22c55e";
     } else {
-      matchMsg.textContent = "✗ Passwords do not match";
+      matchMsg.textContent = I.auth_pw_match_bad || "✗ Passwords do not match";
       matchMsg.style.color = "#ef4444";
     }
   }
 
   document.getElementById("reg-form").addEventListener("submit", function (e) {
-    const val   = pwInput.value;
-    const score = evaluate(val);
+    var val   = pwInput.value;
+    var score = evaluate(val);
     if (score < 4) {
       e.preventDefault();
       pwInput.focus();

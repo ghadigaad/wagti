@@ -1,22 +1,41 @@
-/* ─── Modes ──────────────────────────────────────────────────────────────────── */
-const MODES = {
-  pomodoro: { label: "Focus", duration: 25 * 60, color: "var(--primary)" },
-  short: { label: "Short Break", duration: 5 * 60, color: "var(--teal)" },
-  long: { label: "Long Break", duration: 15 * 60, color: "var(--teal)" },
-};
+/* ─── i18n ───────────────────────────────────────────────────────────────────── */
+function I(key) {
+  const x = window.__I18N__;
+  return x && x[key] !== undefined ? x[key] : key;
+}
+
+function localeDigits(n) {
+  if (document.documentElement.lang !== "ar") return String(n);
+  const num = Number(n);
+  return Number.isNaN(num) ? String(n) : num.toLocaleString("ar-SA", { maximumFractionDigits: 20 });
+}
+
+function pad2Time(n) {
+  if (document.documentElement.lang !== "ar") return String(n).padStart(2, "0");
+  return Number(n).toLocaleString("ar-SA", { minimumIntegerDigits: 2, maximumFractionDigits: 0, useGrouping: false });
+}
+
+function makeModes() {
+  return {
+    pomodoro: { label: I("focus_label_focus"), duration: 25 * 60, color: "var(--primary)" },
+    short: { label: I("focus_label_short"), duration: 5 * 60, color: "var(--teal)" },
+    long: { label: I("focus_label_long"), duration: 15 * 60, color: "var(--teal)" },
+  };
+}
+
+let MODES = {};
 
 /* ─── State ──────────────────────────────────────────────────────────────────── */
 let currentMode = "pomodoro";
-let timeLeft = MODES.pomodoro.duration;
-let totalDuration = MODES.pomodoro.duration;
+let timeLeft = 25 * 60;
+let totalDuration = 25 * 60;
 let running = false;
 let intervalId = null;
-let pomodorosCompleted = 0;  // session
-let pomodorosTodayCount = parseInt(localStorage.getItem("pom_today") || "0");
-let totalFocusSeconds = parseInt(localStorage.getItem("pom_focus_sec") || "0");
+let pomodorosCompleted = 0;
+let pomodorosTodayCount = parseInt(localStorage.getItem("pom_today") || "0", 10);
+let totalFocusSeconds = parseInt(localStorage.getItem("pom_focus_sec") || "0", 10);
 let lastDate = localStorage.getItem("pom_date") || "";
 
-// Reset daily stats if new day
 const today = new Date().toDateString();
 if (lastDate !== today) {
   pomodorosTodayCount = 0;
@@ -26,41 +45,45 @@ if (lastDate !== today) {
   localStorage.setItem("pom_date", today);
 }
 
-const CIRCUMFERENCE = 2 * Math.PI * 114; // r=114
+const CIRCUMFERENCE = 2 * Math.PI * 114;
 
-/* ─── Init ───────────────────────────────────────────────────────────────────── */
+function docTitleBase() {
+  return I("focus_doc_title");
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  MODES = makeModes();
+  timeLeft = MODES.pomodoro.duration;
+  totalDuration = MODES.pomodoro.duration;
+
   updateDisplay();
   updateRing();
   updateDots();
   updateSessionStats();
   requestNotificationPermission();
 
-  // Page Visibility API — alert when user switches tabs during focus
   document.addEventListener("visibilitychange", () => {
     if (document.hidden && running && currentMode === "pomodoro") {
       showAlert(true);
-      flashTitle("⚠️ Stay Focused!");
+      flashTitle(I("focus_title_flash"));
     } else {
       showAlert(false);
-      document.title = "Deep Focus — Wagti";
+      document.title = docTitleBase();
     }
   });
 });
 
-/* ─── Mode selection ─────────────────────────────────────────────────────────── */
 function setMode(mode) {
+  MODES = makeModes();
   if (running) resetTimer();
   currentMode = mode;
   timeLeft = MODES[mode].duration;
   totalDuration = MODES[mode].duration;
 
-  // Update button styles
   document.getElementById("btn-pomodoro").className = "timer-mode-btn" + (mode === "pomodoro" ? " active" : "");
   document.getElementById("btn-short").className = "timer-mode-btn break" + (mode === "short" ? " active" : "");
   document.getElementById("btn-long").className = "timer-mode-btn break" + (mode === "long" ? " active" : "");
 
-  // Ring color
   const ring = document.getElementById("ring-progress");
   ring.className = "timer-ring-progress" + (mode !== "pomodoro" ? " break" : "");
 
@@ -70,7 +93,6 @@ function setMode(mode) {
   showAlert(false);
 }
 
-/* ─── Timer controls ─────────────────────────────────────────────────────────── */
 function startTimer() {
   if (running) return;
   running = true;
@@ -85,22 +107,24 @@ function pauseTimer() {
   clearInterval(intervalId);
   document.getElementById("btn-start").style.display = "inline-flex";
   document.getElementById("btn-pause").style.display = "none";
-  document.getElementById("btn-start").innerHTML = '<i class="fa-solid fa-play"></i> Resume';
+  document.getElementById("btn-start").innerHTML =
+    `<i class="fa-solid fa-play"></i> ${I("focus_resume")}`;
 }
 
 function resetTimer() {
+  MODES = makeModes();
   running = false;
   clearInterval(intervalId);
   timeLeft = MODES[currentMode].duration;
   document.getElementById("btn-start").style.display = "inline-flex";
   document.getElementById("btn-pause").style.display = "none";
-  document.getElementById("btn-start").innerHTML = '<i class="fa-solid fa-play"></i> Start';
+  document.getElementById("btn-start").innerHTML =
+    `<i class="fa-solid fa-play"></i> ${I("focus_start")}`;
   updateDisplay();
   updateRing();
   showAlert(false);
 }
 
-/* ─── Tick ───────────────────────────────────────────────────────────────────── */
 function tick() {
   if (timeLeft <= 0) {
     clearInterval(intervalId);
@@ -119,11 +143,12 @@ function tick() {
   updateRing();
 }
 
-/* ─── Timer complete ─────────────────────────────────────────────────────────── */
 function onTimerComplete() {
+  MODES = makeModes();
   document.getElementById("btn-start").style.display = "inline-flex";
   document.getElementById("btn-pause").style.display = "none";
-  document.getElementById("btn-start").innerHTML = '<i class="fa-solid fa-play"></i> Start';
+  document.getElementById("btn-start").innerHTML =
+    `<i class="fa-solid fa-play"></i> ${I("focus_start")}`;
 
   if (currentMode === "pomodoro") {
     pomodorosCompleted++;
@@ -133,27 +158,25 @@ function onTimerComplete() {
     updateDots();
     updateSessionStats();
 
-    notify("Pomodoro Complete! 🎉", "Great work! Time for a break.");
-    toast("Pomodoro done! Take a break.", "success");
+    notify(I("focus_notify_pomo_title"), I("focus_notify_pomo_body"));
+    toast(I("focus_toast_pomo_done"), "success");
 
-    // Auto-suggest break after 4 pomodoros
     if (pomodorosCompleted % 4 === 0) {
       setTimeout(() => setMode("long"), 1000);
     } else {
       setTimeout(() => setMode("short"), 1000);
     }
   } else {
-    notify("Break Over!", "Time to focus again.");
-    toast("Break finished. Let's get back to work!", "info");
+    notify(I("focus_notify_break_title"), I("focus_notify_break_body"));
+    toast(I("focus_toast_break_done"), "info");
     setTimeout(() => setMode("pomodoro"), 1000);
   }
 }
 
-/* ─── Display ────────────────────────────────────────────────────────────────── */
 function updateDisplay() {
   const m = Math.floor(timeLeft / 60);
   const s = timeLeft % 60;
-  const text = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  const text = `${pad2Time(m)}:${pad2Time(s)}`;
   document.getElementById("timer-display").textContent = text;
   document.getElementById("timer-label").textContent = MODES[currentMode].label;
   document.title = `${text} — Wagti`;
@@ -166,7 +189,6 @@ function updateRing() {
   document.getElementById("ring-progress").style.strokeDashoffset = offset;
 }
 
-/* ─── Pomodoro dots ──────────────────────────────────────────────────────────── */
 function updateDots() {
   for (let i = 0; i < 4; i++) {
     const dot = document.getElementById(`dot-${i}`);
@@ -174,14 +196,14 @@ function updateDots() {
   }
 }
 
-/* ─── Session stats ──────────────────────────────────────────────────────────── */
 function updateSessionStats() {
-  document.getElementById("stat-pom-today").textContent = pomodorosTodayCount;
+  document.getElementById("stat-pom-today").textContent = localeDigits(pomodorosTodayCount);
   const mins = Math.floor(totalFocusSeconds / 60);
-  document.getElementById("stat-focus-time").textContent = mins > 0 ? `${mins} min` : "0 min";
+  const suf = I("js_min_suffix");
+  document.getElementById("stat-focus-time").textContent =
+    mins > 0 ? `${localeDigits(mins)}${suf}` : `${localeDigits(0)}${suf}`;
 }
 
-/* ─── Alert ──────────────────────────────────────────────────────────────────── */
 function showAlert(show) {
   document.getElementById("focus-alert").style.display = show ? "flex" : "none";
 }
@@ -191,7 +213,7 @@ function flashTitle(msg) {
   let toggle = true;
   clearInterval(titleFlashInterval);
   titleFlashInterval = setInterval(() => {
-    document.title = toggle ? msg : "Deep Focus — Wagti";
+    document.title = toggle ? msg : docTitleBase();
     toggle = !toggle;
   }, 1000);
 
@@ -203,7 +225,6 @@ function flashTitle(msg) {
   }, { once: true });
 }
 
-/* ─── Notifications ──────────────────────────────────────────────────────────── */
 function requestNotificationPermission() {
   if ("Notification" in window && Notification.permission === "default") {
     Notification.requestPermission();
@@ -216,7 +237,6 @@ function notify(title, body) {
   }
 }
 
-/* ─── Toast ──────────────────────────────────────────────────────────────────── */
 function toast(message, type = "info") {
   const container = document.getElementById("toast-container");
   const el = document.createElement("div");

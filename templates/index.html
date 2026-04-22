@@ -1,90 +1,87 @@
 {% extends "base.html" %}
-{% block title %}Tasks — Wagti{% endblock %}
+{% block title %}{{ t('tasks.title_page') }}{% endblock %}
 
 {% block content %}
 <div class="page-header">
-  <h1><i class="fa-solid fa-list-check" style="color: var(--primary);"></i> Manage Your Time</h1>
-  <p>Add tasks, set goals, and track your time.</p>
+  <h1><i class="fa-solid fa-list-check" style="color: var(--primary);"></i> {{ t('tasks.header') }}</h1>
+  <p>{{ t('tasks.sub') }}</p>
 </div>
 
 <div class="grid-2">
-  <!-- Add Task Form -->
   <div class="card">
-    <div class="card-title"><i class="fa-solid fa-plus"></i> New Task</div>
+    <div class="card-title"><i class="fa-solid fa-plus"></i> {{ t('tasks.new_task') }}</div>
     <form id="task-form">
       <div class="form-group">
-        <label for="task_name">Task Name</label>
-        <input type="text" id="task_name" class="form-control" placeholder="e.g. Study Chapter 3" required />
+        <label for="task_name">{{ t('tasks.task_name') }}</label>
+        <input type="text" id="task_name" class="form-control" placeholder="{{ t('tasks.placeholder_name') }}" required />
       </div>
       <div class="grid-2" style="gap:1rem;">
         <div class="form-group">
-          <label for="category">Category</label>
+          <label for="category">{{ t('tasks.category') }}</label>
           <select id="category" class="form-control">
-            <option value="Study">📚 Study</option>
-            <option value="Work">💼 Work</option>
-            <option value="Personal">🧘 Personal</option>
+            <option value="Study">📚 {{ category_label('Study') }}</option>
+            <option value="Work">💼 {{ category_label('Work') }}</option>
+            <option value="Personal">🧘 {{ category_label('Personal') }}</option>
           </select>
         </div>
         <div class="form-group">
-          <label for="expected_duration">Goal (minutes)</label>
+          <label for="expected_duration">{{ t('tasks.goal_min') }}</label>
           <input type="number" id="expected_duration" class="form-control" value="25" min="1" max="480" />
         </div>
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
-        <i class="fa-solid fa-plus"></i> Add Task
+        <i class="fa-solid fa-plus"></i> {{ t('tasks.add') }}
       </button>
     </form>
   </div>
 
-  <!-- Quick Stats -->
   <div style="display:flex; flex-direction:column; gap:1rem;">
     <div class="stat-card">
       <div class="stat-icon primary"><i class="fa-solid fa-fire"></i></div>
       <div>
-        <div class="stat-label">Active Tasks</div>
+        <div class="stat-label">{{ t('tasks.stat_active') }}</div>
         <div class="stat-value" id="stat-active">0</div>
       </div>
     </div>
     <div class="stat-card">
       <div class="stat-icon success"><i class="fa-solid fa-circle-check"></i></div>
       <div>
-        <div class="stat-label">Completed Today</div>
+        <div class="stat-label">{{ t('tasks.stat_completed') }}</div>
         <div class="stat-value" id="stat-completed">0</div>
       </div>
     </div>
     <div class="stat-card">
       <div class="stat-icon teal"><i class="fa-solid fa-clock"></i></div>
       <div>
-        <div class="stat-label">Total Time Today</div>
-        <div class="stat-value" id="stat-time">0 min</div>
+        <div class="stat-label">{{ t('tasks.stat_time') }}</div>
+        <div class="stat-value" id="stat-time">0</div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Task List -->
 <div class="card section-gap" style="margin-top:1.5rem;">
   <div class="card-title" style="justify-content:space-between;">
-    <span><i class="fa-solid fa-bars-staggered"></i> Your Tasks</span>
+    <span><i class="fa-solid fa-bars-staggered"></i> {{ t('tasks.your_tasks') }}</span>
     <div style="display:flex; gap:8px;">
       <select id="filter-status" class="form-control" style="width:auto; padding:4px 10px; font-size:0.8rem;">
-        <option value="all">All</option>
-        <option value="pending">Pending</option>
-        <option value="active">Active</option>
-        <option value="completed">Completed</option>
+        <option value="all">{{ t('tasks.filter_all') }}</option>
+        <option value="pending">{{ t('tasks.filter_pending') }}</option>
+        <option value="active">{{ t('tasks.filter_active') }}</option>
+        <option value="completed">{{ t('tasks.filter_completed') }}</option>
       </select>
       <select id="filter-cat" class="form-control" style="width:auto; padding:4px 10px; font-size:0.8rem;">
-        <option value="all">All Categories</option>
-        <option value="Study">Study</option>
-        <option value="Work">Work</option>
-        <option value="Personal">Personal</option>
+        <option value="all">{{ t('tasks.filter_cat_all') }}</option>
+        <option value="Study">{{ category_label('Study') }}</option>
+        <option value="Work">{{ category_label('Work') }}</option>
+        <option value="Personal">{{ category_label('Personal') }}</option>
       </select>
     </div>
   </div>
   <div id="task-list" class="task-list">
     <div class="empty-state">
       <i class="fa-regular fa-clipboard"></i>
-      <p>No tasks yet. Add one above to get started!</p>
+      <p>{{ t('tasks.empty') }}</p>
     </div>
   </div>
 </div>
