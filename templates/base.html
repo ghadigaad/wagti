@@ -142,18 +142,29 @@
     (function() {
       var hamburger = document.getElementById("nav-hamburger");
       var navLinks  = document.getElementById("nav-links");
-      if (!hamburger || !navLinks) return;
-      hamburger.addEventListener("click", function() {
-        navLinks.classList.toggle("nav-open");
-        hamburger.querySelector("i").className =
-          navLinks.classList.contains("nav-open") ? "fa-solid fa-xmark" : "fa-solid fa-bars";
-      });
-      navLinks.querySelectorAll("a").forEach(function(a) {
-        a.addEventListener("click", function() {
-          navLinks.classList.remove("nav-open");
-          hamburger.querySelector("i").className = "fa-solid fa-bars";
+      function closeNav() {
+        if (!navLinks || !hamburger) return;
+        navLinks.classList.remove("nav-open");
+        var ic = hamburger.querySelector("i");
+        if (ic) ic.className = "fa-solid fa-bars";
+      }
+      if (hamburger && navLinks) {
+        hamburger.addEventListener("click", function() {
+          navLinks.classList.toggle("nav-open");
+          var ic = hamburger.querySelector("i");
+          if (ic) {
+            ic.className =
+              navLinks.classList.contains("nav-open") ? "fa-solid fa-xmark" : "fa-solid fa-bars";
+          }
         });
-      });
+        navLinks.querySelectorAll("a").forEach(function(a) {
+          a.addEventListener("click", closeNav);
+        });
+      }
+      var localeNavBtn = document.getElementById("locale-toggle");
+      if (localeNavBtn) localeNavBtn.addEventListener("click", closeNav);
+      var themeNavBtn = document.getElementById("theme-toggle");
+      if (themeNavBtn) themeNavBtn.addEventListener("click", closeNav);
     })();
   </script>
 </body>

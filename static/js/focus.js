@@ -25,6 +25,86 @@ function makeModes() {
 
 let MODES = {};
 
+const STORAGE_SOUND_OFF = "sf_focus_sound_off";
+
+/** Peak gain for completion tones (~2x prior ~0.1); keep below ~0.35 to limit clipping. */
+const FOCUS_SOUND_PEAK = 0.24;
+const FOCUS_SOUND_PEAK_HIGH = 0.3;
+
+function focusSoundMuted() {
+  try {
+    return localStorage.getItem(STORAGE_SOUND_OFF) === "1";
+  } catch (e) {
+    return false;
+  }
+}
+
+function setFocusSoundMuted(off) {
+  try {
+    if (off) localStorage.setItem(STORAGE_SOUND_OFF, "1");
+    else localStorage.removeItem(STORAGE_SOUND_OFF);
+  } catch (e) {}
+}
+
+let audioCtx = null;
+
+function ensureAudioContext() {
+  if (!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    audioCtx = new AC();
+  }
+  return audioCtx;
+}
+
+function resumeAudioContextIfNeeded() {
+  const ctx = ensureAudioContext();
+  if (!ctx) return Promise.resolve();
+  if (ctx.state === "suspended") return ctx.resume().catch(() => {});
+  return Promise.resolve();
+}
+
+/** Short sine blip; delayFromNow is seconds after currentTime when scheduled. */
+function playTone(freq, duration, delayFromNow, peakGain = FOCUS_SOUND_PEAK) {
+  const ctx = ensureAudioContext();
+  if (!ctx || focusSoundMuted()) return;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "sine";
+  osc.frequency.value = freq;
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  const t0 = ctx.currentTime + delayFromNow;
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.linearRampToValueAtTime(peakGain, t0 + 0.018);
+  gain.gain.linearRampToValueAtTime(0.0001, t0 + duration);
+  osc.start(t0);
+  osc.stop(t0 + duration + 0.03);
+}
+
+/** Pomodoro finished — rising triad (take a break). */
+function playFocusSessionCompleteSound() {
+  if (focusSoundMuted()) return;
+  resumeAudioContextIfNeeded().then(() => {
+    if (focusSoundMuted()) return;
+    if (!ensureAudioContext()) return;
+    playTone(523.25, 0.17, 0, FOCUS_SOUND_PEAK);
+    playTone(659.25, 0.17, 0.2, FOCUS_SOUND_PEAK);
+    playTone(783.99, 0.21, 0.4, FOCUS_SOUND_PEAK_HIGH);
+  });
+}
+
+/** Break finished — lower two-tone signal (back to focus). */
+function playBreakCompleteSound() {
+  if (focusSoundMuted()) return;
+  resumeAudioContextIfNeeded().then(() => {
+    if (focusSoundMuted()) return;
+    if (!ensureAudioContext()) return;
+    playTone(392, 0.22, 0, FOCUS_SOUND_PEAK);
+    playTone(523.25, 0.26, 0.3, FOCUS_SOUND_PEAK_HIGH);
+  });
+}
+
 /* ─── State ──────────────────────────────────────────────────────────────────── */
 let currentMode = "pomodoro";
 let timeLeft = 25 * 60;
@@ -62,6 +142,14 @@ document.addEventListener("DOMContentLoaded", () => {
   updateSessionStats();
   requestNotificationPermission();
 
+  var soundToggle = document.getElementById("focus-sound-toggle");
+  if (soundToggle) {
+    soundToggle.checked = !focusSoundMuted();
+    soundToggle.addEventListener("change", function () {
+      setFocusSoundMuted(!soundToggle.checked);
+    });
+  }
+
   document.addEventListener("visibilitychange", () => {
     if (document.hidden && running && currentMode === "pomodoro") {
       showAlert(true);
@@ -95,6 +183,7 @@ function setMode(mode) {
 
 function startTimer() {
   if (running) return;
+  resumeAudioContextIfNeeded();
   running = true;
   document.getElementById("btn-start").style.display = "none";
   document.getElementById("btn-pause").style.display = "inline-flex";
@@ -158,6 +247,7 @@ function onTimerComplete() {
     updateDots();
     updateSessionStats();
 
+    playFocusSessionCompleteSound();
     notify(I("focus_notify_pomo_title"), I("focus_notify_pomo_body"));
     toast(I("focus_toast_pomo_done"), "success");
 
@@ -167,6 +257,7 @@ function onTimerComplete() {
       setTimeout(() => setMode("short"), 1000);
     }
   } else {
+    playBreakCompleteSound();
     notify(I("focus_notify_break_title"), I("focus_notify_break_body"));
     toast(I("focus_toast_break_done"), "info");
     setTimeout(() => setMode("pomodoro"), 1000);

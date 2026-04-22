@@ -135,6 +135,7 @@ _MSG: dict[str, dict[str, str]] = {
     "focus.pause": {"en": "Pause", "ar": "إيقاف مؤقت"},
     "focus.resume": {"en": "Resume", "ar": "استئناف"},
     "focus.reset": {"en": "Reset", "ar": "إعادة"},
+    "focus.sound_alerts": {"en": "Sound alerts when timer ends", "ar": "تنبيه صوتي عند انتهاء المؤقت"},
     "focus.alert": {"en": "You left the focus session! Stay on track.", "ar": "غادرت جلسة التركيز! التزم بالمسار."},
     "focus.tips_title": {"en": "Pomodoro Technique", "ar": "تقنية بومودورو"},
     "focus.tip1": {"en": "Work for", "ar": "اعمل لمدة"},
