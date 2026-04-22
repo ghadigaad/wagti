@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, render_template, redirect, url_for, f
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, User, Activity
 from analysis import get_dashboard_stats, get_recommendations, get_productivity_score, get_warnings
-from db_url import normalize_database_url, ipv4_hostaddr_for_hostname
+from db_url import normalize_database_url, ipv4_preferred_connect_args_for_url
 from datetime import datetime
 from urllib.parse import urlparse
 import os
@@ -22,14 +22,9 @@ _db_url = os.environ.get(
 if not _db_url.startswith("sqlite"):
     try:
         u = normalize_database_url(_db_url)
-        p = urlparse(u)
-        # Optional: force IPv4 if Render cannot reach Supabase over IPv6 (set WAGTI_DB_IPV4=1 on Render)
-        if os.environ.get("WAGTI_DB_IPV4") == "1" and p.hostname:
-            h = ipv4_hostaddr_for_hostname(p.hostname, p.port or 5432)
-            if h:
-                app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-                    "connect_args": {"hostaddr": h},
-                }
+        cargs = ipv4_preferred_connect_args_for_url(u)
+        if cargs:
+            app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"connect_args": cargs}
         _db_url = u
     except Exception:
         pass

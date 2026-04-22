@@ -2,8 +2,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import os
 from sqlalchemy import create_engine, text
-from db_url import normalize_database_url, ipv4_hostaddr_for_hostname
-from urllib.parse import urlparse
+from db_url import normalize_database_url, ipv4_preferred_connect_args_for_url
 
 # Saudi Arabia Standard Time = UTC+3
 SAUDI_OFFSET = timedelta(hours=3)
@@ -23,12 +22,10 @@ def _get_engine():
     if db_url.startswith("sqlite"):
         return create_engine(db_url)
     db_url = normalize_database_url(db_url)
-    p = urlparse(db_url)
+    cargs = ipv4_preferred_connect_args_for_url(db_url)
     opts = {}
-    if os.environ.get("WAGTI_DB_IPV4") == "1" and p.hostname:
-        h = ipv4_hostaddr_for_hostname(p.hostname, p.port or 5432)
-        if h:
-            opts["connect_args"] = {"hostaddr": h}
+    if cargs:
+        opts["connect_args"] = cargs
     return create_engine(db_url, **opts) if opts else create_engine(db_url)
 
 
