@@ -3,6 +3,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from models import db, User, Activity
 from analysis import get_dashboard_stats, get_recommendations, get_productivity_score, get_warnings
 from db_url import normalize_database_url, ipv4_preferred_connect_args_for_url
+from sqlalchemy.exc import OperationalError
 from datetime import datetime
 from urllib.parse import urlparse
 import os
@@ -42,6 +43,37 @@ db.init_app(app)
 _db_init_lock = threading.Lock()
 _db_tables_ready = False
 
+_SUPABASE_IPV4_MSG = (
+    "Wagti could not open a network connection to PostgreSQL (often: Render is IPv4-only, "
+    "and Supabase 'Direct' db.….supabase.co is reachable only over IPv6).\n\n"
+    "Fix: In the Supabase dashboard, open your project -> Connect (or Project Settings -> Database) "
+    "-> Connection string. Use the **Session** pooler, port **5432** (not Transaction on 6543). "
+    "The host looks like aws-0-REGION.pooler.supabase.com and the username is often "
+    "postgres.YourProjectRef. Paste the full postgresql:// URI (with your real password) as "
+    "DATABASE_URL in Render, save, and redeploy.\n\n"
+    "In Render, set the service health check path to /healthz (not /) so probes do not hit the DB on HEAD /.\n"
+    "To see the raw exception, set WAGTI_SHOW_DB_ERR=1 in Render (then remove it)."
+)
+
+
+def _db_error_looks_like_unreachable(e: BaseException) -> bool:
+    parts: list[str] = [str(e)]
+    o = getattr(e, "orig", None)
+    if o is not None:
+        parts.append(str(o))
+    c = getattr(e, "__cause__", None)
+    if c is not None:
+        parts.append(str(c))
+    text = " ".join(parts).lower()
+    return any(
+        x in text
+        for x in (
+            "network is unreachable",
+            "no route to host",
+            "address family not supported",
+        )
+    )
+
 
 @app.get("/healthz")
 def healthz():
@@ -75,10 +107,21 @@ def _ensure_db_tables():
                 db.create_all()
             except Exception as e:
                 app.logger.exception("db.create_all failed: %s", e)
+                durl2 = (os.environ.get("DATABASE_URL") or "").lower()
                 if os.environ.get("WAGTI_SHOW_DB_ERR") == "1":
                     return Response(
                         f"Database error (set WAGTI_SHOW_DB_ERR=0 after debugging):\n\n{repr(e)}",
                         status=500,
+                        mimetype="text/plain; charset=utf-8",
+                    )
+                if isinstance(
+                    e, OperationalError
+                ) and _db_error_looks_like_unreachable(
+                    e
+                ) and "supabase.co" in durl2:
+                    return Response(
+                        _SUPABASE_IPV4_MSG,
+                        status=503,
                         mimetype="text/plain; charset=utf-8",
                     )
                 raise
