@@ -6,8 +6,9 @@ from db_url import normalize_database_url, ipv4_hostaddr_for_hostname
 from datetime import datetime
 from urllib.parse import urlparse
 import os
-import uuid
 import re
+import threading
+import uuid
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "change-me-in-production-please")
@@ -19,14 +20,18 @@ _db_url = os.environ.get(
     "sqlite:///" + os.path.join(os.path.abspath(os.path.dirname(__file__)), "smartfocus.db"),
 )
 if not _db_url.startswith("sqlite"):
-    _db_url = normalize_database_url(_db_url)
-    _p = urlparse(_db_url)
-    if _p.hostname:
-        _haddr = ipv4_hostaddr_for_hostname(_p.hostname, _p.port or 5432)
-        if _haddr:
-            app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-                "connect_args": {"hostaddr": _haddr},
-            }
+    try:
+        u = normalize_database_url(_db_url)
+        p = urlparse(u)
+        if p.hostname:
+            h = ipv4_hostaddr_for_hostname(p.hostname, p.port or 5432)
+            if h:
+                app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+                    "connect_args": {"hostaddr": h},
+                }
+        _db_url = u
+    except Exception:
+        pass
 
 app.config["SQLALCHEMY_DATABASE_URI"] = _db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -45,8 +50,31 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-with app.app_context():
-    db.create_all()
+# Do not run db.create_all() at import time: Gunicorn would exit with status 1
+# if the DB is unreachable, before the process can listen. Create tables on
+# the first request instead (Render can still "deploy" and you get usable logs).
+_db_init_lock = threading.Lock()
+_db_tables_ready = False
+
+
+@app.get("/healthz")
+def healthz():
+    return jsonify(status="ok")
+
+
+@app.before_request
+def _ensure_db_tables():
+    global _db_tables_ready
+    if request.path == "/healthz" or request.path.startswith("/static"):
+        return
+    if _db_tables_ready:
+        return
+    with _db_init_lock:
+        if _db_tables_ready:
+            return
+        with app.app_context():
+            db.create_all()
+        _db_tables_ready = True
 
 
 # ─── Auth Routes ──────────────────────────────────────────────────────────────
