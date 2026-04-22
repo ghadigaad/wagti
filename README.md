@@ -35,7 +35,7 @@ A personal productivity web app that helps you manage tasks, track focus time wi
 
 **1. Clone the repo**
 ```bash
-git clone https://github.com/YOUR_USERNAME/wagti.git
+git clone https://github.com/ghadigaad/wagti.git
 cd wagti
 ```
 
