@@ -20,6 +20,9 @@ def _get_engine():
     )
     if db_url.startswith("postgres://"):
         db_url = db_url.replace("postgres://", "postgresql://", 1)
+    if db_url.startswith("postgresql") and "sslmode" not in db_url:
+        db_url += "&" if "?" in db_url else "?"
+        db_url += "sslmode=require"
     return create_engine(db_url)
 
 

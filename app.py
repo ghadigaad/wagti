@@ -18,6 +18,10 @@ _db_url = os.environ.get(
 )
 if _db_url.startswith("postgres://"):
     _db_url = _db_url.replace("postgres://", "postgresql://", 1)
+# Supabase / cloud Postgres require SSL from outside the VPC
+if _db_url.startswith("postgresql") and "sslmode" not in _db_url:
+    _db_url += "&" if "?" in _db_url else "?"
+    _db_url += "sslmode=require"
 
 app.config["SQLALCHEMY_DATABASE_URI"] = _db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
