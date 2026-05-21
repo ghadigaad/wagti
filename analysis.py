@@ -7,6 +7,8 @@ from i18n import (
     category_label,
     dow_name,
     format_daily_chart_label,
+    format_hour,
+    format_hour_range,
     tr,
 )
 
@@ -107,7 +109,7 @@ def get_dashboard_stats(user_id, locale: str = "en"):
 
     # Hourly productivity (all time)
     hourly = df.groupby("hour")["duration"].sum()
-    hourly_labels = [f"{h:02d}:00" for h in range(24)]
+    hourly_labels = [format_hour(h, locale) for h in range(24)]
     hourly_values = [round(float(hourly.get(h, 0)) / 60, 1) for h in range(24)]
 
     # Summary cards
@@ -291,9 +293,9 @@ def get_prediction(user_id, locale: str = "en"):
     top_hours = hourly.nlargest(2).index.tolist()
     top_hours.sort()
     if len(top_hours) == 2 and abs(top_hours[1] - top_hours[0]) <= 2:
-        range_label = f"{top_hours[0]:02d}:00 – {top_hours[-1]+1:02d}:00"
+        range_label = format_hour_range(int(top_hours[0]), int(top_hours[-1]) + 1, locale)
     else:
-        range_label = f"{peak_hour:02d}:00 – {peak_hour+1:02d}:00"
+        range_label = format_hour_range(peak_hour, peak_hour + 1, locale)
 
     conf = tr("conf.high", locale) if sessions >= 5 else tr("conf.medium", locale) if sessions >= 2 else tr("conf.low", locale)
     day_ar = dow_name(tomorrow_dow, locale)
@@ -361,9 +363,9 @@ def get_recommendations(user_id, locale: str = "en"):
                 "text": tr(
                     "rec.peak_text",
                     locale,
-                    h=f"{peak_hour:02d}",
+                    h=format_hour(peak_hour, locale),
                     p=peak_min,
-                    c=f"{cutoff_hour:02d}",
+                    c=format_hour(cutoff_hour, locale),
                 ),
                 "type": "success",
             }
@@ -381,7 +383,7 @@ def get_recommendations(user_id, locale: str = "en"):
                 "text": tr(
                     "rec.distraction_text",
                     locale,
-                    h=f"{worst_hour:02d}",
+                    h=format_hour(worst_hour, locale),
                     a=worst_avg,
                 ),
                 "type": "warning",
@@ -494,7 +496,7 @@ def _empty_stats(locale: str = "en"):
     return {
         "daily": {"labels": labels_7, "values": [0] * 7},
         "category": {"labels": [], "values": [], "keys": []},
-        "hourly": {"labels": [f"{h:02d}:00" for h in range(24)], "values": [0] * 24},
+        "hourly": {"labels": [format_hour(h, locale) for h in range(24)], "values": [0] * 24},
         "summary": {
             "total_today_min": 0,
             "total_tasks_today": 0,

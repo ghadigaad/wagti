@@ -15,17 +15,44 @@ function pad2Time(n) {
   return Number(n).toLocaleString("ar-SA", { minimumIntegerDigits: 2, maximumFractionDigits: 0, useGrouping: false });
 }
 
+const STORAGE_SOUND_OFF = "sf_focus_sound_off";
+const STORAGE_FOCUS_MIN = "sf_pomo_focus_min";
+const DEFAULT_FOCUS_MIN = 25;
+const MIN_FOCUS_MIN = 1;
+const MAX_FOCUS_MIN = 60;
+
+function clampFocusMinutes(mins) {
+  const n = parseInt(mins, 10);
+  if (Number.isNaN(n)) return DEFAULT_FOCUS_MIN;
+  return Math.min(MAX_FOCUS_MIN, Math.max(MIN_FOCUS_MIN, n));
+}
+
+function getFocusMinutes() {
+  try {
+    return clampFocusMinutes(localStorage.getItem(STORAGE_FOCUS_MIN) || DEFAULT_FOCUS_MIN);
+  } catch (e) {
+    return DEFAULT_FOCUS_MIN;
+  }
+}
+
+function setFocusMinutes(mins) {
+  const v = clampFocusMinutes(mins);
+  try {
+    localStorage.setItem(STORAGE_FOCUS_MIN, String(v));
+  } catch (e) {}
+  return v;
+}
+
 function makeModes() {
+  const focusSec = getFocusMinutes() * 60;
   return {
-    pomodoro: { label: I("focus_label_focus"), duration: 25 * 60, color: "var(--primary)" },
+    pomodoro: { label: I("focus_label_focus"), duration: focusSec, color: "var(--primary)" },
     short: { label: I("focus_label_short"), duration: 5 * 60, color: "var(--teal)" },
     long: { label: I("focus_label_long"), duration: 15 * 60, color: "var(--teal)" },
   };
 }
 
 let MODES = {};
-
-const STORAGE_SOUND_OFF = "sf_focus_sound_off";
 
 /** Peak gain for completion tones (~2x prior ~0.1); keep below ~0.35 to limit clipping. */
 const FOCUS_SOUND_PEAK = 0.24;
@@ -107,8 +134,8 @@ function playBreakCompleteSound() {
 
 /* ─── State ──────────────────────────────────────────────────────────────────── */
 let currentMode = "pomodoro";
-let timeLeft = 25 * 60;
-let totalDuration = 25 * 60;
+let timeLeft = DEFAULT_FOCUS_MIN * 60;
+let totalDuration = DEFAULT_FOCUS_MIN * 60;
 let running = false;
 let intervalId = null;
 let pomodorosCompleted = 0;
@@ -131,10 +158,54 @@ function docTitleBase() {
   return I("focus_doc_title");
 }
 
+function syncDurationControlUI(mins) {
+  const slider = document.getElementById("focus-duration");
+  const output = document.getElementById("focus-duration-value");
+  const tipMins = document.getElementById("tip-focus-mins");
+  const wrap = document.getElementById("focus-duration-wrap");
+  const display = localeDigits(mins);
+
+  if (slider) {
+    slider.value = String(mins);
+    slider.setAttribute("aria-valuenow", String(mins));
+  }
+  if (output) output.textContent = display;
+  if (tipMins) tipMins.textContent = display;
+  if (wrap) wrap.classList.toggle("is-disabled", running);
+}
+
+function applyFocusDuration(mins) {
+  const v = setFocusMinutes(mins);
+  MODES = makeModes();
+  syncDurationControlUI(v);
+  if (!running && currentMode === "pomodoro") {
+    timeLeft = MODES.pomodoro.duration;
+    totalDuration = MODES.pomodoro.duration;
+    updateDisplay();
+    updateRing();
+  }
+}
+
+function setDurationControlsEnabled(enabled) {
+  const wrap = document.getElementById("focus-duration-wrap");
+  if (wrap) wrap.classList.toggle("is-disabled", !enabled);
+  const slider = document.getElementById("focus-duration");
+  if (slider) slider.disabled = !enabled;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  const mins = getFocusMinutes();
   MODES = makeModes();
   timeLeft = MODES.pomodoro.duration;
   totalDuration = MODES.pomodoro.duration;
+
+  const slider = document.getElementById("focus-duration");
+  if (slider) {
+    slider.value = String(mins);
+    slider.addEventListener("input", () => applyFocusDuration(slider.value));
+    slider.addEventListener("change", () => applyFocusDuration(slider.value));
+  }
+  syncDurationControlUI(mins);
 
   updateDisplay();
   updateRing();
@@ -185,6 +256,7 @@ function startTimer() {
   if (running) return;
   resumeAudioContextIfNeeded();
   running = true;
+  setDurationControlsEnabled(false);
   document.getElementById("btn-start").style.display = "none";
   document.getElementById("btn-pause").style.display = "inline-flex";
 
@@ -194,6 +266,8 @@ function startTimer() {
 function pauseTimer() {
   running = false;
   clearInterval(intervalId);
+  setDurationControlsEnabled(true);
+  syncDurationControlUI(getFocusMinutes());
   document.getElementById("btn-start").style.display = "inline-flex";
   document.getElementById("btn-pause").style.display = "none";
   document.getElementById("btn-start").innerHTML =
@@ -205,6 +279,8 @@ function resetTimer() {
   running = false;
   clearInterval(intervalId);
   timeLeft = MODES[currentMode].duration;
+  setDurationControlsEnabled(true);
+  syncDurationControlUI(getFocusMinutes());
   document.getElementById("btn-start").style.display = "inline-flex";
   document.getElementById("btn-pause").style.display = "none";
   document.getElementById("btn-start").innerHTML =
@@ -234,6 +310,8 @@ function tick() {
 
 function onTimerComplete() {
   MODES = makeModes();
+  setDurationControlsEnabled(true);
+  syncDurationControlUI(getFocusMinutes());
   document.getElementById("btn-start").style.display = "inline-flex";
   document.getElementById("btn-pause").style.display = "none";
   document.getElementById("btn-start").innerHTML =

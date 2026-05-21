@@ -15,6 +15,17 @@
   </div>
 </div>
 
+<div class="focus-duration-picker" id="focus-duration-wrap">
+  <label for="focus-duration" class="focus-duration-label">{{ t('focus.duration_label') }}</label>
+  <div class="focus-duration-row">
+    <input type="range" id="focus-duration" min="1" max="60" value="25" step="1"
+           aria-valuemin="1" aria-valuemax="60" aria-valuenow="25" />
+    <output id="focus-duration-value" for="focus-duration">25</output>
+    <span class="focus-duration-unit">{{ t('focus.duration_unit') }}</span>
+  </div>
+  <span class="focus-duration-hint">{{ t('focus.duration_hint') }}</span>
+</div>
+
 <div class="focus-container">
   <div class="timer-ring-wrapper">
     <svg viewBox="0 0 260 260">
@@ -61,7 +72,7 @@
   <div class="card">
     <div class="card-title"><i class="fa-solid fa-circle-info"></i> {{ t('focus.tips_title') }}</div>
     <ul class="focus-tips-list">
-      <li><i class="fa-solid fa-1 step-icon"></i> {{ t('focus.tip1') }} <strong>{{ t('focus.tip1b') }}</strong> {{ t('focus.tip1c') }}</li>
+      <li><i class="fa-solid fa-1 step-icon"></i> {{ t('focus.tip1') }} <strong id="tip-focus-mins">25</strong> {{ t('focus.duration_unit') }} {{ t('focus.tip1c') }}</li>
       <li><i class="fa-solid fa-2 step-icon"></i> {{ t('focus.tip2') }} <strong>{{ t('focus.tip2b') }}</strong> {{ t('focus.tip2c') }}</li>
       <li><i class="fa-solid fa-3 step-icon"></i> {{ t('focus.tip3') }} <strong>{{ t('focus.tip3b') }}</strong> {{ t('focus.tip3c') }}</li>
       <li><i class="fa-solid fa-4 step-icon"></i> {{ t('focus.tip4') }}</li>
