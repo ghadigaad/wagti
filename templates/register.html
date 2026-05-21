@@ -131,10 +131,10 @@
     var cv = confirm.value;
     if (!cv) { matchMsg.textContent = ""; return; }
     if (pw === cv) {
-      matchMsg.textContent = I.auth_pw_match_ok || "✓ Passwords match";
+      matchMsg.textContent = I.auth_pw_match_ok || "Passwords match";
       matchMsg.style.color = "#22c55e";
     } else {
-      matchMsg.textContent = I.auth_pw_match_bad || "✗ Passwords do not match";
+      matchMsg.textContent = I.auth_pw_match_bad || "Passwords do not match";
       matchMsg.style.color = "#ef4444";
     }
   }

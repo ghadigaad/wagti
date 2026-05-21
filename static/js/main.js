@@ -167,7 +167,6 @@ function renderTasks() {
 }
 
 function taskHTML(t) {
-  const catEmoji = { Study: "📚", Work: "💼", Personal: "🧘" }[t.category] || "";
   const catClass = `badge-${t.category.toLowerCase()}`;
   const statusClass = `badge-${t.status}`;
   const cLab = catLabel(t.category);
@@ -191,7 +190,7 @@ function taskHTML(t) {
       <div class="task-info">
         <div class="task-name">${escapeHTML(t.task_name)}</div>
         <div class="task-meta">
-          <span class="badge ${catClass}">${catEmoji} ${cLab}</span>
+          <span class="badge ${catClass}">${cLab}</span>
           <span class="badge ${statusClass}">${sLab}</span>
           <span><i class="fa-regular fa-clock"></i> <span class="task-elapsed">${elapsed}</span> / ${localeDigits(t.expected_duration)}${suf}</span>
         </div>

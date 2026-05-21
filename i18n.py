@@ -133,7 +133,7 @@ _MSG: dict[str, dict[str, str]] = {
     "tasks.filter_cat_all": {"en": "Every kind", "ar": "كل شي"},
     "tasks.empty": {
         "en": "Empty list. Add one up top to see it move.",
-        "ar": "اللستة فاضية للحين 👀",
+        "ar": "اللستة فاضية للحين",
     },
     # ─── Focus ───────────────────────────────────────────────
     "focus.title_page": {"en": "Deep Focus — Wagti", "ar": "تركيز عميق — وقتي"},
@@ -158,7 +158,7 @@ _MSG: dict[str, dict[str, str]] = {
     "focus.sound_alerts": {"en": "Chime when the block ends", "ar": "صوت لما ينتهي الوقت"},
     "focus.alert": {
         "en": "You slipped away. Come back when you can",
-        "ar": "طلعت من الجلسة 👀 ارجع كمّل إذا فضيت",
+        "ar": "طلعت من الجلسة، ارجع كمّل إذا فضيت",
     },
     "focus.tips_title": {"en": "How a Pomodoro run works", "ar": "كيف بومودورو يمشي"},
     "focus.tip1": {"en": "Go in for", "ar": "ادخل"},
@@ -176,7 +176,7 @@ _MSG: dict[str, dict[str, str]] = {
     "focus.total_focus": {"en": "Time in focus this visit", "ar": "دقايق تركيزك هالمرّة"},
     "focus.current_mode": {"en": "You’re in", "ar": "وضعك:"},
     "focus.doc_title": {"en": "Deep Focus — Wagti", "ar": "تركيز عميق — وقتي"},
-    "focus.title_flash": {"en": "⚠️ stay here", "ar": "⚠️ خلك هنا"},
+    "focus.title_flash": {"en": "stay here", "ar": "خلك هنا"},
     # ─── Dashboard ──────────────────────────────────────────
     "dash.title_page": {"en": "Insights — Wagti", "ar": "الإحصائيات — وقتي"},
     "dash.header": {"en": "Your readout", "ar": "وش وضعك اليوم؟"},
@@ -244,8 +244,8 @@ _MSG: dict[str, dict[str, str]] = {
     "auth.pw_fair": {"en": "Okay", "ar": "يمشي"},
     "auth.pw_good": {"en": "Nice", "ar": "حلو"},
     "auth.pw_strong": {"en": "Solid", "ar": "قوي"},
-    "auth.pw_match_ok": {"en": "✓ same words", "ar": "✓ نفس الكلمتين"},
-    "auth.pw_match_bad": {"en": "✗ not the same", "ar": "✗ مو نفس بعض"},
+    "auth.pw_match_ok": {"en": "Passwords match", "ar": "نفس الكلمتين"},
+    "auth.pw_match_bad": {"en": "Passwords do not match", "ar": "مو نفس بعض"},
     # API / flash (app.py)
     "api.task_name_required": {
         "en": "We need a name for that task",
@@ -285,12 +285,12 @@ _MSG: dict[str, dict[str, str]] = {
     "status.completed": {"en": "completed", "ar": "خلصت"},
     # ─── JS ─────────────────────────────────────────────────
     "js.load_fail": {"en": "Couldn’t load your list: ", "ar": "ما قدرت أجيب المهام: "},
-    "js.task_added": {"en": "It’s on the list", "ar": "انضافت للمهمات ✔"},
+    "js.task_added": {"en": "It’s on the list", "ar": "انضافت للمهمات"},
     "js.error_prefix": {"en": "Hmm: ", "ar": "شي غلط: "},
     "js.delete_confirm": {"en": "Remove this one?", "ar": "أكيد تبي تحذفها؟"},
     "js.task_deleted": {"en": "Removed", "ar": "انشالت"},
     "js.tracking_started": {"en": "Timer’s running", "ar": "الوقت يمشي"},
-    "js.task_done": {"en": "You closed it. Nice", "ar": "خلصتها 👏"},
+    "js.task_done": {"en": "You closed it. Nice", "ar": "خلصتها"},
     "js.no_match_filters": {
         "en": "Nothing here with those filters. Loosen one",
         "ar": "فاضي بهالفلتر. جرّب توسّع شوي",
@@ -301,7 +301,7 @@ _MSG: dict[str, dict[str, str]] = {
     "js.delete_title": {"en": "Delete", "ar": "حذف"},
     "js.min": {"en": "min", "ar": "د"},
     "js.min_suffix": {"en": " min", "ar": " د"},
-    "focus.notify_pomo_title": {"en": "Round done 🎉", "ar": "خلصت الجلسة 🎉"},
+    "focus.notify_pomo_title": {"en": "Round done", "ar": "خلصت الجلسة"},
     "focus.notify_pomo_body": {
         "en": "Stretch, drink water, breathe",
         "ar": "قم تحرك شوي وخذ لك بريك",
@@ -336,7 +336,7 @@ _MSG: dict[str, dict[str, str]] = {
     "dash.fmt_h": {"en": "h", "ar": "س"},
     "dash.breakdown_pts": {"en": "pts", "ar": "نقطة"},
     # ─── Analysis / API dynamic strings ─────────────────────
-    "score.excellent": {"en": "On fire", "ar": "فُل 🔥"},
+    "score.excellent": {"en": "On fire", "ar": "فُل"},
     "score.good": {"en": "Solid", "ar": "تمام"},
     "score.fair": {"en": "Room to grow", "ar": "يمديك أفضل"},
     "score.needs_work": {"en": "Let’s nudge it up", "ar": "شد حيلك شوي"},
@@ -354,7 +354,7 @@ _MSG: dict[str, dict[str, str]] = {
     # ─── Warnings ───────────────────────────────────────────
     "warn.no_sessions": {
         "en": "You haven’t logged a focus block yet.",
-        "ar": "للحين ما بدأت جلسة تركيز 👀",
+        "ar": "للحين ما بدأت جلسة تركيز",
     },
     "warn.none_today": {
         "en": "Today’s still quiet. Pop open Tasks and run one timer",
@@ -362,7 +362,7 @@ _MSG: dict[str, dict[str, str]] = {
     },
     "warn.low_today": {
         "en": "Only {m} min on the board today.",
-        "ar": "اليوم ما أخذت إلا {m} دقيقة. تقدر تسوي أكثر 💪",
+        "ar": "اليوم ما أخذت إلا {m} دقيقة. تقدر تسوي أكثر",
     },
     "warn.below_avg": {
         "en": "You’re at {t} min today.",
@@ -370,7 +370,7 @@ _MSG: dict[str, dict[str, str]] = {
     },
     "warn.one_cat": {
         "en": "This week is all {c}.",
-        "ar": "هالأسبوع كله {c} 👀 جرّب تغيّر شوي.",
+        "ar": "هالأسبوع كله {c}. جرّب تغيّر شوي.",
     },
     # ─── Recommendations ────────────────────────────────────
     "rec.get_started_title": {"en": "First steps", "ar": "خلّنا نبدأ"},
@@ -416,12 +416,12 @@ _MSG: dict[str, dict[str, str]] = {
     "rec.study_ok_title": {"en": "Study mix", "ar": "الدراسة عندك"},
     "rec.study_ok_text": {
         "en": "Nice, {p}% of your time is study.",
-        "ar": "ممتاز 👏 الدراسة عندك تمثل {p}% من وقتك.",
+        "ar": "ممتاز، الدراسة عندك تمثل {p}% من وقتك.",
     },
     "rec.streak_title": {"en": "Day streak", "ar": "استمراريتك"},
     "rec.streak_text": {
         "en": "You’ve chained {n} days in a row.",
-        "ar": "لك {n} يوم مستمر 👏",
+        "ar": "لك {n} يوم مستمر",
     },
     "rec.best_day_title": {"en": "Your power day", "ar": "يومك القوي"},
     "rec.best_day_text": {
